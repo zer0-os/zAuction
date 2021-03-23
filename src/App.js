@@ -5,7 +5,7 @@ import './App.css';
 import nft from './nft.png';
 import Titlebar from './components/Titlebar/Titlebar.jsx';
 
-function getLibrary(provider: any): Web3Provider {
+function getLibrary(provider) {
   const library = new Web3Provider(provider);
   library.pollingInterval = 12000;
   return library;
