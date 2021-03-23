@@ -18,8 +18,8 @@ contract zAuction {
     function acceptBid(bytes memory signature, uint256 bid, address nftaddress, uint256 tokenid) external {
         address bidder = recover(keccak256(abi.encode(bid, nftaddress, tokenid)), signature);
         IERC721 nftcontract = IERC721(nftaddress);
-        nftcontract.transferFrom(msg.sender, bidder, tokenid);
         accountant.Exchange(bidder, msg.sender, bid);
+        nftcontract.transferFrom(msg.sender, bidder, tokenid);
     }
 
     function recover(bytes32 hash, bytes memory signature) public pure returns (address) {
