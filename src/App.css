@@ -39,10 +39,13 @@
 	text-shadow:0px 1px 0px #2f6627;
   font-family: 'black-tie';
 }
-.nft-btn:hover {
-	background-color:#f45d64;
+.nft-btn:focus {
+  outline:none;
 }
-.ntf-btn:active {
+.nft-btn:hover {
+	background-color:#539bff;
+}
+.nft-btn:active {
 	position:relative;
 	top:1px;
 }
