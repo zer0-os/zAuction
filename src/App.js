@@ -1,3 +1,5 @@
+import React from 'react';
+import fleek from '@fleekhq/fleek-storage-js'
 import { Web3ReactProvider, useWeb3React, UnsupportedChainIdError } from '@web3-react/core'
 import {
   NoEthereumProviderError,
@@ -52,7 +54,20 @@ function getErrorMessage(error) {
   }
 }
 
+
+async function fleekWriteFile(apiKey, apiSecret, key, data) {
+  let result;
+	const input = {
+		apiKey: apiKey,
+		apiSecret: apiSecret,
+		key: key,
+		data: JSON.stringify(data)
+	};
+	return result = await fleek.upload(input);
+}
+
 function App() {
+ 
   return (
     <div className="app">
     	<Titlebar />
