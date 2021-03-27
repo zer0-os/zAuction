@@ -1,12 +1,12 @@
 import React from 'react';
-import ConnectBtn from '../../components/ConnectBtn/ConnectBtn.jsx';
+import ConnectBtn from '../ConnectBtn/ConnectBtn';
 import './Titlebar.css';
 import logo from '../../logo.png';
 
 
 const Titlebar = () =>
   <header id="header">
-    <img src={logo} className="logo" />
+    <img src={logo} className="logo" alt="logo" />
     <div className="header-right">
     	<ConnectBtn />
     </div>

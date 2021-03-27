@@ -13,26 +13,27 @@ import { formatEther } from '@ethersproject/units'
 import { useEagerConnect, useInactiveListener } from './hooks'
 import {
   injected,
-  network,
-  walletconnect,
-  walletlink,
-  ledger,
-  trezor,
-  lattice,
-  frame,
-  authereum,
-  fortmatic,
-  magic,
-  portis,
-  torus
+  //network,
+  //walletconnect,
+  //walletlink,
+  //ledger,
+  //trezor,
+  //lattice,
+  //frame,
+  //authereum,
+  //fortmatic,
+  //magic,
+  //torus
+  //portis,
 } from './connectors'
 
 import './App.css';
 import nft from './nft.png';
-import Titlebar from './components/Titlebar/Titlebar.jsx';
+import Titlebar from './components/Titlebar/Titlebar';
 
 function getLibrary(provider) {
   const library = new Web3Provider(provider);
+  console.log(library)
   library.pollingInterval = 12000;
   return library;
 }
@@ -73,7 +74,7 @@ function App() {
     	<Titlebar />
       <div className="body">
         <div className="nft_container">
-          <img src={nft} className="nft_img" alt="ntf image" />
+          <img src={nft} className="nft_img" alt="ntf" />
           <div className="nft_bid_accept">
             <button
             	className="bid_btn nft-btn"

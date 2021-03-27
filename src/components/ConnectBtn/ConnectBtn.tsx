@@ -19,6 +19,7 @@ const ConnectBtn = () => {
     	style={{backgroundColor: connectBtnColor}}
 			onClick={() => {
   			connectInjected(w3r).then(() => {
+    			console.log(w3r)
 					setConnectBtnText("Connected")
 					setConnectBtnColor("#44aa44")
   			})
