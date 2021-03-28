@@ -9,6 +9,7 @@ import { UserRejectedRequestError as UserRejectedRequestErrorWalletConnect } fro
 import { UserRejectedRequestError as UserRejectedRequestErrorFrame } from '@web3-react/frame-connector'
 import { Web3Provider } from '@ethersproject/providers'
 import { formatEther } from '@ethersproject/units'
+import { ApolloClient, ApolloProvider, InMemoryCache, useQuery, gql } from '@apollo/client';
 
 import { useEagerConnect, useInactiveListener } from './hooks'
 import {
@@ -30,6 +31,22 @@ import {
 import './App.css';
 import nft from './nft.png';
 import Titlebar from './components/Titlebar/Titlebar';
+
+console.log(process.env.REACT_APP_SUBGRAPH_URL);
+
+const client = new ApolloClient({
+  uri: process.env.REACT_APP_SUBGRAPH_URL,
+  cache: new InMemoryCache(),
+});
+
+const tokenQuery = gql`
+{
+  tokens( where: {owner: "users_address"}){
+     id
+     tokenURI
+  }
+}
+`;
 
 function getLibrary(provider) {
   const library = new Web3Provider(provider);
@@ -55,7 +72,6 @@ function getErrorMessage(error) {
   }
 }
 
-
 async function fleekWriteFile(apiKey, apiSecret, key, data) {
   let result;
 	const input = {
@@ -68,6 +84,10 @@ async function fleekWriteFile(apiKey, apiSecret, key, data) {
 }
 
 function App() {
+
+  const { g_data, g_loading, g_error } = useQuery(tokenQuery);
+
+  setTimeout(() => { console.table(g_data) },3000)
  
   return (
     <div className="app">
@@ -96,9 +116,11 @@ function App() {
 
 function wrappedApp() {
   return (
-    <Web3ReactProvider getLibrary={getLibrary}>
-      <App />
-    </Web3ReactProvider>
+    <ApolloProvider client={client}>
+      <Web3ReactProvider getLibrary={getLibrary}>
+        <App />
+      </Web3ReactProvider>
+    </ApolloProvider>
   );
 }
 
