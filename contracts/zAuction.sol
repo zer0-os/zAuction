@@ -9,9 +9,12 @@ import "./zAuctionAccountant.sol";
 contract zAuction {
     using ECDSA for bytes32;
 
+    bool initialized;
     zAuctionAccountant accountant;
 
-    constructor(address accountantaddress){
+    function init(address accountantaddress) external {
+        require(!initialized);
+        initialized = true;
         accountant = zAuctionAccountant(accountantaddress);
     }
 

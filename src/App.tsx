@@ -85,7 +85,7 @@ function getErrorMessage(error: any) {
 
 function App() {
 
-  const { library } = useWeb3React();
+  const { connector, account, library } = useWeb3React();
 
   const { data, loading, error } = useQuery(nftByPopularity);
 
@@ -102,13 +102,110 @@ function App() {
 
   function bid() {
     console.log("bid");
-    console.log(library)
-    appendDB()
+    console.log(library);
+    console.log(account);
+    appendDB();
   }
   
-  function accept() {
+  async function accept() {
     console.log("accept");
     console.log(library);
+    console.log(account);
+    let bal = await library.getTransactionCount(account)
+    console.log(bal);
+    console.log(connector);
+
+    let c = await new library.Contract(
+      "0xB3A0647B8d7090298429097C41D8D74d18f5bC63",
+      [
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "accountantaddress",
+              "type": "address"
+            }
+          ],
+          "name": "init",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "bytes",
+              "name": "signature",
+              "type": "bytes"
+            },
+            {
+              "internalType": "uint256",
+              "name": "bid",
+              "type": "uint256"
+            },
+            {
+              "internalType": "address",
+              "name": "nftaddress",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "tokenid",
+              "type": "uint256"
+            }
+          ],
+          "name": "acceptBid",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "bytes32",
+              "name": "hash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes",
+              "name": "signature",
+              "type": "bytes"
+            }
+          ],
+          "name": "recover",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "pure",
+          "type": "function",
+          "constant": true
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "bytes32",
+              "name": "hash",
+              "type": "bytes32"
+            }
+          ],
+          "name": "toEthSignedMessageHash",
+          "outputs": [
+            {
+              "internalType": "bytes32",
+              "name": "",
+              "type": "bytes32"
+            }
+          ],
+          "stateMutability": "pure",
+          "type": "function",
+          "constant": true
+        }
+      ], account
+      );
   }
 
   async function instantiateDB() {
