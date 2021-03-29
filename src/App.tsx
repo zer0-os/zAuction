@@ -11,6 +11,7 @@ import { UserRejectedRequestError as UserRejectedRequestErrorFrame } from '@web3
 import { ExternalProvider, JsonRpcFetchFunc, Web3Provider } from '@ethersproject/providers';
 import { formatEther } from '@ethersproject/units';
 import { ApolloClient, ApolloProvider, InMemoryCache, useQuery, gql } from '@apollo/client';
+import faker from 'faker';
 
 import { setExValue } from './redux/actions/ex-actions';
 
@@ -88,32 +89,78 @@ function App() {
 
   const { data, loading, error } = useQuery(nftByPopularity);
 
+  function fake() {
+    const product = {
+      account: faker.finance.ethereumAddress(),
+      name: faker.commerce.product(),
+      price: faker.commerce.price(),
+      img: faker.image.image()
+    }
+    console.log(product)
+    return product
+  }
+
   function bid() {
     console.log("bid");
     console.log(library)
+    appendDB()
   }
   
   function accept() {
     console.log("accept");
-    console.log(library)
+    console.log(library);
   }
 
-  async function fleekWriteFile(data: any) {
+  async function instantiateDB() {
     let result;
+    let bidObjStr = '{"bids":[]}';
+    let bidObj = JSON.parse(bidObjStr);
+    bidObj['bids'].push(fake());
+    
     const input = {
       apiKey: process.env.REACT_APP_FLEEK_API_KEY,
       apiSecret: process.env.REACT_APP_FLEEK_API_SECRET,
       key: '0.json',
-      data: JSON.stringify(data)
+      data: JSON.stringify(bidObj)
+    };
+    return result = await fleek.upload(input);
+  }
+
+  async function getDB() {
+    const DB = await fleek.get({
+      apiKey: process.env.REACT_APP_FLEEK_API_KEY,
+      apiSecret: process.env.REACT_APP_FLEEK_API_SECRET,
+      key: '0.json',
+      getOptions: [
+        'data',
+        //'bucket',
+        //'key',
+        //'hash',
+        'publicUrl'
+      ],
+    })
+    return JSON.parse(DB.data);
+  }
+
+  async function appendDB() {
+    let result
+    let bidObj = await getDB()
+
+    bidObj['bids'].push(fake());
+
+    const input = {
+      apiKey: process.env.REACT_APP_FLEEK_API_KEY,
+      apiSecret: process.env.REACT_APP_FLEEK_API_SECRET,
+      key: '0.json',
+      data: JSON.stringify(bidObj)
     };
     return result = await fleek.upload(input);
   }
   
-  //setTimeout(() => {
-  //  console.table(data)
-  //  console.log(library)
-  //  setExValue('TIMED')
-  //},13000)
+  setTimeout(() => {
+    console.table("THE GRAPH:",data)
+    console.log("DB:",getDB())
+  },1000)
  
   return (
     <div className="app">
