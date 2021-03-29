@@ -1,17 +1,20 @@
 import React from 'react';
-import fleek from '@fleekhq/fleek-storage-js'
-import { Web3ReactProvider, useWeb3React, UnsupportedChainIdError } from '@web3-react/core'
+import { connect } from 'react-redux';
+import fleek from '@fleekhq/fleek-storage-js';
+import { Web3ReactProvider, useWeb3React, UnsupportedChainIdError } from '@web3-react/core';
 import {
   NoEthereumProviderError,
   UserRejectedRequestError as UserRejectedRequestErrorInjected
-} from '@web3-react/injected-connector'
-import { UserRejectedRequestError as UserRejectedRequestErrorWalletConnect } from '@web3-react/walletconnect-connector'
-import { UserRejectedRequestError as UserRejectedRequestErrorFrame } from '@web3-react/frame-connector'
-import { Web3Provider } from '@ethersproject/providers'
-import { formatEther } from '@ethersproject/units'
+} from '@web3-react/injected-connector';
+import { UserRejectedRequestError as UserRejectedRequestErrorWalletConnect } from '@web3-react/walletconnect-connector';
+import { UserRejectedRequestError as UserRejectedRequestErrorFrame } from '@web3-react/frame-connector';
+import { ExternalProvider, JsonRpcFetchFunc, Web3Provider } from '@ethersproject/providers';
+import { formatEther } from '@ethersproject/units';
 import { ApolloClient, ApolloProvider, InMemoryCache, useQuery, gql } from '@apollo/client';
 
-import { useEagerConnect, useInactiveListener } from './hooks'
+import { setExValue } from './redux/actions/ex-actions';
+
+import { useEagerConnect, useInactiveListener } from './hooks';
 import {
   injected,
   //network,
@@ -26,13 +29,14 @@ import {
   //magic,
   //torus
   //portis,
-} from './connectors'
+} from './connectors';
 
 import './App.css';
 import nft from './nft.png';
 import Titlebar from './components/Titlebar/Titlebar';
+import { isCompositeComponent } from 'react-dom/test-utils';
 
-console.log(process.env.REACT_APP_SUBGRAPH_URL);
+console.log("SUBGRAPH URL IS",process.env.REACT_APP_SUBGRAPH_URL);
 
 const client = new ApolloClient({
   uri: process.env.REACT_APP_SUBGRAPH_URL,
@@ -40,22 +44,28 @@ const client = new ApolloClient({
 });
 
 const tokenQuery = gql`
+{ tokens { contract tokenID owner tokenURI } }
+`;
+
+const nftByPopularity = gql`
 {
-  tokens( where: {owner: "users_address"}){
-     id
-     tokenURI
+  tokenContracts(orderBy: numOwners, orderDirection: desc, first: 100) {
+    id
+    name
+    numTokens
+    numOwners
+    supportsEIP721Metadata
   }
 }
 `;
 
-function getLibrary(provider) {
+function getLibrary(provider: ExternalProvider | JsonRpcFetchFunc) {
   const library = new Web3Provider(provider);
-  console.log(library)
   library.pollingInterval = 12000;
   return library;
 }
 
-function getErrorMessage(error) {
+function getErrorMessage(error: any) {
   if (error instanceof NoEthereumProviderError) {
     return 'No Ethereum browser extension detected, install MetaMask on desktop or visit from a dApp browser on mobile.'
   } else if (error instanceof UnsupportedChainIdError) {
@@ -72,37 +82,60 @@ function getErrorMessage(error) {
   }
 }
 
-async function fleekWriteFile(apiKey, apiSecret, key, data) {
-  let result;
-	const input = {
-		apiKey: apiKey,
-		apiSecret: apiSecret,
-		key: key,
-		data: JSON.stringify(data)
-	};
-	return result = await fleek.upload(input);
-}
-
 function App() {
 
-  const { g_data, g_loading, g_error } = useQuery(tokenQuery);
+  const { library } = useWeb3React();
 
-  setTimeout(() => { console.table(g_data) },3000)
+  const { data, loading, error } = useQuery(nftByPopularity);
+
+  function bid() {
+    console.log("bid");
+    console.log(library)
+  }
+  
+  function accept() {
+    console.log("accept");
+    console.log(library)
+  }
+
+  async function fleekWriteFile(data: any) {
+    let result;
+    const input = {
+      apiKey: process.env.REACT_APP_FLEEK_API_KEY,
+      apiSecret: process.env.REACT_APP_FLEEK_API_SECRET,
+      key: '0.json',
+      data: JSON.stringify(data)
+    };
+    return result = await fleek.upload(input);
+  }
+  
+  //setTimeout(() => {
+  //  console.table(data)
+  //  console.log(library)
+  //  setExValue('TIMED')
+  //},13000)
  
   return (
     <div className="app">
     	<Titlebar />
       <div className="body">
+        <div className="testainer">
+      	  { loading && <p>Still loading..</p>}
+       	  { error && <p>Error Retrieving Data!</p>}
+       	  { data && <p>Data Retrieved</p>}
+        </div>
         <div className="nft_container">
           <img src={nft} className="nft_img" alt="ntf" />
           <div className="nft_bid_accept">
             <button
-            	className="bid_btn nft-btn"
+              className="bid_btn nft-btn"
+              onClick={bid}
             >
             	Bid
             </button>
             <button
-            	className="accept_btn nft-btn"
+              className="accept_btn nft-btn"
+              onClick={accept}
             >
             	Accept
             </button>
@@ -124,4 +157,8 @@ function wrappedApp() {
   );
 }
 
-export default wrappedApp;
+const mapDispatchToProps = (dispatch: (arg0: { type: string; payload: any; }) => any) => ({
+  setExValue: (exValue: any) => dispatch(setExValue(exValue))
+})
+
+export default connect(null,mapDispatchToProps)(wrappedApp);
