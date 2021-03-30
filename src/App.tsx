@@ -92,6 +92,11 @@ function App() {
 
   const { data, loading, error } = useQuery(nftByPopularity);
 
+  const nftcontractaddress = "0x3936eb9D0f623B60711f5a0849740B2a486e146a";
+  const nfttokenid = "0x0";
+  const bidderaddress = account;
+  const amt = 1000;
+  
   function fake() {
     const product = {
       account: faker.finance.ethereumAddress(),
@@ -103,22 +108,17 @@ function App() {
     return product
   }
 
-  function bid(amt) {
+  function bid() {
     console.log("bid");
     console.log(library);
     console.log(account);
-    ethers.utils.keccak256(amt.toString() + account + nftcontractaddress + nfttokenid);
+    let bidmsg = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(amt.toString() + account + nftcontractaddress + nfttokenid));
+    console.log(bidmsg);
     //appendDB();
   }
   
   async function accept() {
-    console.log("accept");
-    console.log(library);
-    console.log(account);
-    let bal = await library.getBalance(account)
-    console.log(bal);
-    console.log(connector);
-    console.log(contract);
+
     contract.acceptBet(bidmsg, amt, bidderaddress, nftcontractaddress, nfttokenid);
   }
 

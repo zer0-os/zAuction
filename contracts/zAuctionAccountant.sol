@@ -17,12 +17,22 @@ contract zAuctionAccountant {
         require(msg.sender == zauction, 'zAuctionAccountant: sender is not zauction contract');
         _;
     }
+    
+    function Deposit() external payable {
+        ethbalance[msg.sender] = SafeMath.add(ethbalance[msg.sender], msg.value);
+    }
 
-    function Deposit(address to) external payable onlyZauction {
+    function Withdraw(uint256 amount) external {
+        require(ethbalance[msg.sender] >= amount);
+        ethbalance[msg.sender] = SafeMath.sub(ethbalance[msg.sender], amount);
+        payable(msg.sender).transfer(amount);
+    }
+
+    function zDeposit(address to) external payable onlyZauction {
         ethbalance[to] = SafeMath.add(ethbalance[to], msg.value);
     }
 
-    function Withdraw(address from, uint256 amount) external onlyZauction {
+    function zWithdraw(address from, uint256 amount) external onlyZauction {
         ethbalance[from] = SafeMath.sub(ethbalance[from], amount);
     }
 
