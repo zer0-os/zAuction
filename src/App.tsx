@@ -1,6 +1,7 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import fleek from '@fleekhq/fleek-storage-js';
+import * as ethers from 'ethers';
 import { Web3ReactProvider, useWeb3React, UnsupportedChainIdError } from '@web3-react/core';
 import {
   NoEthereumProviderError,
@@ -12,6 +13,7 @@ import { ExternalProvider, JsonRpcFetchFunc, Web3Provider } from '@ethersproject
 import { formatEther } from '@ethersproject/units';
 import { ApolloClient, ApolloProvider, InMemoryCache, useQuery, gql } from '@apollo/client';
 import faker from 'faker';
+import contract from './utils/instantiate-contract';
 
 import { setExValue } from './redux/actions/ex-actions';
 
@@ -87,8 +89,8 @@ function getErrorMessage(error: any) {
 let bidAmt: number;
 
 function App() {
-  //const { bidAmt, setBidAmt } = useContext(0);
-  const { library } = useWeb3React();
+  const { connector, account, library } = useWeb3React();
+  console.log(useWeb3React());
   const { data, loading, error } = useQuery(nftByPopularity);
 
 
@@ -103,16 +105,24 @@ function App() {
     return product
   }
 
-  function bid(e) {
+  function bid(amt,e) {
     e.preventDefault()
-    console.log("bid",bidAmt);
-    console.log(library)
-    //appendDB()
+    console.log("bid",amt);
+    console.log(library);
+    console.log(account);
+    //ethers.utils.keccak256(amt.toString() + account + nftcontractaddress + nfttokenid);
+    //appendDB();
   }
   
-  function accept() {
+  async function accept() {
     console.log("accept");
     console.log(library);
+    console.log(account);
+    let bal = await library.getBalance(account)
+    console.log(bal);
+    console.log(connector);
+    console.log(contract);
+    contract.acceptBet(bidmsg, amt, bidderaddress, nftcontractaddress, nfttokenid);
   }
 
   async function instantiateDB() {
@@ -196,7 +206,7 @@ function App() {
               />       
               <button
                 className="bid_btn nft-btn"
-                onClick={bid}
+                onClick={(e) => bid(bidAmt,e)}
               >
                 Bid
               </button>

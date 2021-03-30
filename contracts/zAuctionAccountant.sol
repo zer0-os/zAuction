@@ -2,15 +2,15 @@
 
 pragma solidity ^0.8.1;
 
-import "./oz/util/SafeMath.sol"
+import "./oz/util/SafeMath.sol";
 
 contract zAuctionAccountant {
     address zauction;
-    address upgradeadmin;
+    address admin;
     mapping(address => uint256) ethbalance;
 
-    constructor(address administrator){ 
-        admin = administrator;
+    constructor(){//address administrator){ 
+        admin = msg.sender;
     }
 
     modifier onlyZauction(){
@@ -23,12 +23,12 @@ contract zAuctionAccountant {
     }
 
     function Withdraw(address from, uint256 amount) external onlyZauction {
-        ethbalance[from] = SafeMath.sub(ethbalance[to], amount);
+        ethbalance[from] = SafeMath.sub(ethbalance[from], amount);
     }
 
     function Exchange(address from, address to, uint256 amount) external onlyZauction {
         ethbalance[from] = SafeMath.sub(ethbalance[to], amount);
-        ethbalance[to] = SafeMath.add(ethbalance[to], msg.value);
+        ethbalance[to] = SafeMath.add(ethbalance[to], amount);
     } 
 
     function SetZauction(address zauctionaddress) external {
