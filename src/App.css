@@ -25,10 +25,11 @@
 .nft_bid_accept {
 	display:flex;
 	flex-direction:row;
+	justify-content:center;
 }
 .nft-btn {
 	padding:1em;
-	margin:1em;
+	margin:1em 0;
 	width:100%;
 	background-color:#6306e6;
 	border-radius:28px;
@@ -55,6 +56,54 @@
 }
 .accept_btn {
 	background-color:#006aff;
+	padding:1em 3em;
+}
+.z-btn {
+	width:100%;
+	background-color:#1b191d;
+	border-radius:28px;
+	border:none;
+	display:inline-block;
+	cursor:pointer;
+	color:#ffffff;
+	font-family:Arial;
+	font-size:17px;
+	padding:16px 31px;
+	margin:16px;
+	text-decoration:none;
+	text-shadow:0px 1px 0px #2f6627;
+	font-family: 'UniviaPro-Book';
+}
+
+.bid_form {
+  /* This bit sets up the horizontal layout */
+  display:flex;
+  flex-direction:row;
+
+  /* I've used padding so you can see the edges of the elements. */
+  padding:2px;
+}
+
+.bid_input {
+  /* Tell the input to use all the available space */
+  flex-grow:2;
+  /* And hide the input's outline, so the form looks like the outline */
+	border:none;
+	margin:17px 0;
+	border-radius:2em 0 0 2em;
+	padding:3px 0 0 1.5em;
+	font-size:1em;
+	font-family: 'UniviaPro-Book';
+}
+
+.bid_btn {
+	border-radius:0 2em 2em 0;
+	margin:1em 1em 1em 0;
+}
+
+.bid_input:focus {
+  /* removing the input focus blue box. Put this on the form if you like. */
+  outline: none;
 }
 
 .testainer {
