@@ -17,9 +17,5 @@ module.exports = async function(deployer) {
   let zaad = await zAuctionAccountant.deployed();
   let td = await token.deployed();
 
-  td.mint("0xC83507FB1cc907d67BbA67D620c591275af18A62");
-  zaad.SetZauction(zad.address);
-  zaad.Deposit({value: 1000000000000000000});
-  //console.log("owner of 0: ", await td.ownerOf(0));
-  td.approve(zad.address, 0);
+  td.mint("0xD3a9ac5FfCFeb6100349644D90376577d966f78E");
 };

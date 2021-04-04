@@ -95,7 +95,7 @@ function App() {
   const { data, loading, error } = useQuery(nftByPopularity);
 
   const nftcontractaddress = "0x101eD6EeC2CB7813a04614cA97421119219AfC1a";
-  const nfttokenid = "0x0";
+  const nfttokenid = 0;
   const bidderaddress = account;
   const amt = 1000;
 
@@ -105,11 +105,32 @@ function App() {
     console.log(library);
     console.log(account);
     //let bidmsg = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(amt + account + nftcontractaddress + nfttokenid));
-    let bidmsg = await library.getSigner().signMessage(ethers.utils.toUtf8Bytes(amt + nftcontractaddress + nfttokenid));
+    
+    const domain = {
+      name: 'NFT Bid',
+      chainId: 4,
+      verifyingContract: "0x3512413A8f4d0911C7B7E5B6c4326124a55801B2",
+    };
+
+    const types = {
+      Bid: [
+        {name: 'amount', type: 'uint256'},
+        {name: 'nca', type: 'address'},
+        {name: 'nti', type: 'uint256'}
+      ]
+    }
+
+    const value = {
+      amount: ethers.utils.parseEther(amt.toString()),
+      nca: nftcontractaddress,
+      nti: nfttokenid
+    }
+    
+    let bidmsg = await library.getSigner()._signTypedData(domain, types, value);
     let newbid = {
       msg: bidmsg,
       bidder: account,
-      amount: amt,
+      amount: ethers.utils.parseEther(amt.toString()),
       contractaddress: nftcontractaddress,
       tokenid: nfttokenid
     };
@@ -220,7 +241,7 @@ console.log(contract);
     contract.acceptBid(
       db.bids[db.bids.length-1].msg, 
       db.bids[db.bids.length-1].bidder,
-      ethers.utils.parseEther(db.bids[db.bids.length-1].amount.toString()), 
+      db.bids[db.bids.length-1].amount, 
       db.bids[db.bids.length-1].contractaddress, 
       db.bids[db.bids.length-1].tokenid);
   }
