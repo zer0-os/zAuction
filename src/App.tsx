@@ -40,6 +40,7 @@ import nft from './nft.png';
 import Titlebar from './components/Titlebar/Titlebar';
 import NftView from './components/NftView/NftView';
 import Nft from './components/Nft/Nft';
+import { TokenKind } from 'graphql';
 //import { isCompositeComponent } from 'react-dom/test-utils';
 
 console.log("SUBGRAPH URL IS",process.env.REACT_APP_SUBGRAPH_URL);
@@ -105,28 +106,47 @@ function App() {
     console.log(library);
     console.log(account);
     //let bidmsg = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(amt + account + nftcontractaddress + nfttokenid));
-    
-    const domain = {
-      name: 'NFT Bid',
-      chainId: 4,
-      verifyingContract: "0x3512413A8f4d0911C7B7E5B6c4326124a55801B2",
-    };
-
-    const types = {
-      Bid: [
-        {name: 'amount', type: 'uint256'},
-        {name: 'nca', type: 'address'},
-        {name: 'nti', type: 'uint256'}
-      ]
+    const typedData = {
+      types: {
+        EIP712Domain: [
+          {name: 'name', type: 'string'},
+          { name: 'version', type: 'string' },
+          { name: 'chainId', type: 'uint256' },
+          { name: 'verifyingContract', type: 'address' }
+        ],
+        Bid: [
+          {name: 'amount', type: 'uint256'},
+          {name: 'nca', type: 'address'},
+          {name: 'nti', type: 'uint256'}
+        ]
+      },
+      primaryType: 'Bid',
+      domain: {
+        name: 'zAuction',
+        version: '0',
+        chainId: 4,
+        verifyingContract: "0x3512413A8f4d0911C7B7E5B6c4326124a55801B2",
+      },
+      message: {
+        amount: ethers.utils.parseEther(amt.toString()),
+        contractaddress: nftcontractaddress,
+        tokenid: nfttokenid
+      }
     }
-
-    const value = {
-      amount: ethers.utils.parseEther(amt.toString()),
-      nca: nftcontractaddress,
-      nti: nfttokenid
-    }
     
-    let bidmsg = await library.getSigner()._signTypedData(domain, types, value);
+    //let bidmsg = await library.getSigner()._signTypedData(typedData.domain, 
+    //  typedData.types, typedData.message);
+    
+    let bidmsg = await library.getSigner().signMessage(
+      ethers.utils.keccak256(
+        ethers.utils.toUtf8Bytes(
+          ethers.utils.parseEther(amt.toString()).toString() 
+          + nftcontractaddress
+          + nfttokenid.toString()
+        )
+      )
+    )
+
     let newbid = {
       msg: bidmsg,
       bidder: account,
