@@ -141,4 +141,11 @@ contract('ECDSA', function (accounts) {
       expect(await this.ecdsa.toEthSignedMessageHash(TEST_MESSAGE)).to.equal(toEthSignedMessageHash(TEST_MESSAGE));
     });
   });
+
+  context('accept bid/sale and transfer tokens', function () {
+    it('should successfully recover creator address', async function () {
+      this.ecdsa.acceptBet()
+      //expect(await this.ecdsa.toEthSignedMessageHash(TEST_MESSAGE)).to.equal(toEthSignedMessageHash(TEST_MESSAGE));
+    });
+  });
 });
