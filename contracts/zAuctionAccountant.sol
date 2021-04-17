@@ -17,6 +17,10 @@ contract zAuctionAccountant {
         require(msg.sender == zauction, 'zAuctionAccountant: sender is not zauction contract');
         _;
     }
+    modifier onlyAdmin(){
+        require(msg.sender == admin, 'zAuctionAccountant: sender is not admin');
+        _;
+    }
     
     function Deposit() external payable {
         ethbalance[msg.sender] = SafeMath.add(ethbalance[msg.sender], msg.value);
@@ -42,7 +46,11 @@ contract zAuctionAccountant {
     } 
 
     function SetZauction(address zauctionaddress) external {
-        require(msg.sender == admin, 'zAuctionAccountant: sender is not admin');
+
         zauction = zauctionaddress;
+    }
+
+    function SetAdmin(address newadmin) external onlyAdmin{
+        
     }
 }

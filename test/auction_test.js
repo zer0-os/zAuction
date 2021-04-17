@@ -4,6 +4,7 @@ const { toEthSignedMessageHash, fixSignature } = require('./helpers/sign');
 const { expect } = require('chai');
 
 const zAuction = artifacts.require('zAuction');
+const nftcontract = artifacts.require('ERC721TestToken');
 
 const TEST_MESSAGE = web3.utils.sha3('OpenZeppelin');
 const WRONG_MESSAGE = web3.utils.sha3('Nope');
@@ -12,7 +13,7 @@ contract('ECDSA', function (accounts) {
   const [ other ] = accounts;
   console.log(other);
   beforeEach(async function () {
-    this.ecdsa = await zAuction.new();
+    this.ecdsa = await zAuction.new();   
   });
 
   context('recover with invalid signature', function () {
@@ -143,8 +144,25 @@ contract('ECDSA', function (accounts) {
   });
 
   context('accept bid/sale and transfer tokens', function () {
-    it('should successfully recover creator address', async function () {
-      this.ecdsa.acceptBet()
+    it('should successfully accept bet', async function () {
+      let nftc = await nftcontract.new('Test721', 'TST', {
+        "id": 0,
+        "description": "My NFT",
+        "external_url": "https://forum.openzeppelin.com/t/create-an-nft-and-deploy-to-a-public-testnet-using-truffle/2961",
+        "image": "https://twemoji.maxcdn.com/svg/1f40e.svg",
+        "name": "My NFT 0"
+      });
+      nftc.mint(accounts[0]);
+      nftc.approve(this.ecdsa.address, 0); 
+      
+      let contractaddress = web3.eth.abi.encodeParameter('address', this.ecdsa.address);
+      let chainid = web3.eth.abi.encodeParameter('uint8', 3);
+      let nonce = web3.eth.abi.encodeParameter('uint32', 0);
+      let bidamt = web3.eth.abi.encodeParameter('uint256', web3.utils.toWei('1'));
+      let nftaddress = web3.eth.abi.encodeParameter('address', nftc.address);
+      let tokenid = web3.eth.abi.encodeParameter('uint256', 0);
+      const TEST_BID = web3.utils.sha3(contractaddress, chainid, nonce, bidamt, nftaddress, tokenid);
+      this.ecdsa.acceptBid(TEST_BID, nonce, accounts[0], bidamt, nftaddress, tokenid);
       //expect(await this.ecdsa.toEthSignedMessageHash(TEST_MESSAGE)).to.equal(toEthSignedMessageHash(TEST_MESSAGE));
     });
   });

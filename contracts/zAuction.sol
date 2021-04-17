@@ -18,8 +18,8 @@ contract zAuction {
         accountant = zAuctionAccountant(accountantaddress);
     }
 
-    function acceptBid(bytes memory signature, address bidder, uint256 bid, address nftaddress, uint256 tokenid) external {
-        address recoveredbidder = recover(keccak256(abi.encode(bid, nftaddress, tokenid)), signature);
+    function acceptBid(bytes memory signature, uint32 nonce, address bidder, uint256 bid, address nftaddress, uint256 tokenid) external {
+        address recoveredbidder = recover(keccak256(abi.encode(address(this), block.chainid, nonce, bid, nftaddress, tokenid)), signature);
         require(bidder == recoveredbidder, 'zAuction: incorrect bidder');
         IERC721 nftcontract = IERC721(nftaddress);
         accountant.Exchange(bidder, msg.sender, bid);
