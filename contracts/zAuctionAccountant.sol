@@ -9,6 +9,9 @@ contract zAuctionAccountant {
     address admin;
     mapping(address => uint256) ethbalance;
 
+    event Deposited(address indexed depositer, uint256 amount);
+    event Withdrawn(address indexed withrawer, uint256 amount);
+
     constructor(){//address administrator){ 
         admin = msg.sender;
     }
@@ -24,12 +27,14 @@ contract zAuctionAccountant {
     
     function Deposit() external payable {
         ethbalance[msg.sender] = SafeMath.add(ethbalance[msg.sender], msg.value);
+        emit Deposited(msg.sender, msg.value);
     }
 
     function Withdraw(uint256 amount) external {
         require(ethbalance[msg.sender] >= amount);
         ethbalance[msg.sender] = SafeMath.sub(ethbalance[msg.sender], amount);
         payable(msg.sender).transfer(amount);
+        emit Withdrawn(msg.sender, amount);
     }
 
     function zDeposit(address to) external payable onlyZauction {

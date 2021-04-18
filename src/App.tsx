@@ -95,7 +95,8 @@ function App() {
   console.log(useWeb3React());
   const { data, loading, error } = useQuery(nftByPopularity);
 
-  const nftcontractaddress = "0x101eD6EeC2CB7813a04614cA97421119219AfC1a";
+  const contractaddress = "0xAAA62Da34E9e9F0e49AfE6D0b2adEb9426383b36";
+  const nftcontractaddress = "0xe8dC9D7027Abdb988fFed6611794767df35A18DF";
   const nfttokenid = 0;
   const bidderaddress = account;
   const amt = 1000;
@@ -106,49 +107,18 @@ function App() {
     console.log(library);
     console.log(account);
     //let bidmsg = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(amt + account + nftcontractaddress + nfttokenid));
-    const typedData = {
-      types: {
-        EIP712Domain: [
-          {name: 'name', type: 'string'},
-          { name: 'version', type: 'string' },
-          { name: 'chainId', type: 'uint256' },
-          { name: 'verifyingContract', type: 'address' }
-        ],
-        Bid: [
-          {name: 'amount', type: 'uint256'},
-          {name: 'nca', type: 'address'},
-          {name: 'nti', type: 'uint256'}
-        ]
-      },
-      primaryType: 'Bid',
-      domain: {
-        name: 'zAuction',
-        version: '0',
-        chainId: 4,
-        verifyingContract: "0x3512413A8f4d0911C7B7E5B6c4326124a55801B2",
-      },
-      message: {
-        amount: ethers.utils.parseEther(amt.toString()),
-        contractaddress: nftcontractaddress,
-        tokenid: nfttokenid
-      }
-    }
+
+    let random = 0;
+    let biddata = ethers.utils.defaultAbiCoder.encode(['uint256', 'address', 'uint8', 'uint256', 'address', 'uint256'], [random, contractaddress, 4, ethers.utils.parseEther(amt.toString()), nftcontractaddress, 0]);
     
     //let bidmsg = await library.getSigner()._signTypedData(typedData.domain, 
     //  typedData.types, typedData.message);
     
-    let bidmsg = await library.getSigner().signMessage(
-      ethers.utils.keccak256(
-        ethers.utils.toUtf8Bytes(
-          ethers.utils.parseEther(amt.toString()).toString() 
-          + nftcontractaddress
-          + nfttokenid.toString()
-        )
-      )
-    )
+    let bidmsg = await library.getSigner().signMessage(ethers.utils.keccak256(biddata))
 
     let newbid = {
       msg: bidmsg,
+      rand: random,
       bidder: account,
       amount: ethers.utils.parseEther(amt.toString()),
       contractaddress: nftcontractaddress,
@@ -162,104 +132,167 @@ function App() {
     const db = await getDB();
 
     console.log(db);
-    let contractaddress = "0x3512413A8f4d0911C7B7E5B6c4326124a55801B2"; 
-let abi = [
-  {
-    "inputs": [
+    //let contractaddress = "0x3512413A8f4d0911C7B7E5B6c4326124a55801B2"; 
+    let abi = [
       {
-        "internalType": "address",
-        "name": "accountantaddress",
-        "type": "address"
-      }
-    ],
-    "name": "init",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes",
-        "name": "signature",
-        "type": "bytes"
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": true,
+            "internalType": "address",
+            "name": "bidder",
+            "type": "address"
+          },
+          {
+            "indexed": true,
+            "internalType": "address",
+            "name": "seller",
+            "type": "address"
+          },
+          {
+            "indexed": false,
+            "internalType": "uint256",
+            "name": "amount",
+            "type": "uint256"
+          },
+          {
+            "indexed": false,
+            "internalType": "address",
+            "name": "nftaddress",
+            "type": "address"
+          },
+          {
+            "indexed": false,
+            "internalType": "uint256",
+            "name": "tokenid",
+            "type": "uint256"
+          }
+        ],
+        "name": "BidAccepted",
+        "type": "event"
       },
       {
-        "internalType": "address",
-        "name": "bidder",
-        "type": "address"
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "name": "randUsed",
+        "outputs": [
+          {
+            "internalType": "bool",
+            "name": "",
+            "type": "bool"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function",
+        "constant": true
       },
       {
-        "internalType": "uint256",
-        "name": "bid",
-        "type": "uint256"
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "accountantaddress",
+            "type": "address"
+          }
+        ],
+        "name": "init",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
       },
       {
-        "internalType": "address",
-        "name": "nftaddress",
-        "type": "address"
+        "inputs": [
+          {
+            "internalType": "bytes",
+            "name": "signature",
+            "type": "bytes"
+          },
+          {
+            "internalType": "uint256",
+            "name": "rand",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "bidder",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "bid",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "nftaddress",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "tokenid",
+            "type": "uint256"
+          }
+        ],
+        "name": "acceptBid",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
       },
       {
-        "internalType": "uint256",
-        "name": "tokenid",
-        "type": "uint256"
-      }
-    ],
-    "name": "acceptBid",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "hash",
-        "type": "bytes32"
+        "inputs": [
+          {
+            "internalType": "bytes32",
+            "name": "hash",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes",
+            "name": "signature",
+            "type": "bytes"
+          }
+        ],
+        "name": "recover",
+        "outputs": [
+          {
+            "internalType": "address",
+            "name": "",
+            "type": "address"
+          }
+        ],
+        "stateMutability": "pure",
+        "type": "function",
+        "constant": true
       },
       {
-        "internalType": "bytes",
-        "name": "signature",
-        "type": "bytes"
+        "inputs": [
+          {
+            "internalType": "bytes32",
+            "name": "hash",
+            "type": "bytes32"
+          }
+        ],
+        "name": "toEthSignedMessageHash",
+        "outputs": [
+          {
+            "internalType": "bytes32",
+            "name": "",
+            "type": "bytes32"
+          }
+        ],
+        "stateMutability": "pure",
+        "type": "function",
+        "constant": true
       }
-    ],
-    "name": "recover",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "pure",
-    "type": "function",
-    "constant": true
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "hash",
-        "type": "bytes32"
-      }
-    ],
-    "name": "toEthSignedMessageHash",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "pure",
-    "type": "function",
-    "constant": true
-  }
-]
-let contract = new ethers.Contract(contractaddress, abi, library.getSigner());
-console.log(contract);
+    ]
+    let contract = new ethers.Contract(contractaddress, abi, library.getSigner());
+    console.log(contract);
     contract.acceptBid(
-      db.bids[db.bids.length-1].msg, 
+      db.bids[db.bids.length-1].msg,
+      db.bids[db.bids.length-1].rand, 
       db.bids[db.bids.length-1].bidder,
       db.bids[db.bids.length-1].amount, 
       db.bids[db.bids.length-1].contractaddress, 
