@@ -41,12 +41,11 @@ contract zAuctionAccountant {
     }
 
     function Exchange(address from, address to, uint256 amount) external onlyZauction {
-        ethbalance[from] = SafeMath.sub(ethbalance[to], amount);
+        ethbalance[from] = SafeMath.sub(ethbalance[from], amount);
         ethbalance[to] = SafeMath.add(ethbalance[to], amount);
     } 
 
     function SetZauction(address zauctionaddress) external {
-
         zauction = zauctionaddress;
     }
 

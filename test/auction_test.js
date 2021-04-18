@@ -4,7 +4,9 @@ const { toEthSignedMessageHash, fixSignature } = require('./helpers/sign');
 const { expect } = require('chai');
 
 const zAuction = artifacts.require('zAuction');
+const zaccountant = artifacts.require('zAuctionAccountant');
 const nftcontract = artifacts.require('ERC721TestToken');
+
 
 const TEST_MESSAGE = web3.utils.sha3('OpenZeppelin');
 const WRONG_MESSAGE = web3.utils.sha3('Nope');
@@ -144,7 +146,7 @@ contract('ECDSA', function (accounts) {
   });
 
   context('accept bid/sale and transfer tokens', function () {
-    it('should successfully accept bet', async function () {
+    it('should successfully accept bid', async function () {
       let nftc = await nftcontract.new('Test721', 'TST', {
         "id": 0,
         "description": "My NFT",
@@ -152,17 +154,29 @@ contract('ECDSA', function (accounts) {
         "image": "https://twemoji.maxcdn.com/svg/1f40e.svg",
         "name": "My NFT 0"
       });
-      nftc.mint(accounts[0]);
-      nftc.approve(this.ecdsa.address, 0); 
-      
+      await nftc.mint(accounts[1]);
+      await nftc.approve(this.ecdsa.address, 0, {from: accounts[1]});
       let contractaddress = web3.eth.abi.encodeParameter('address', this.ecdsa.address);
-      let chainid = web3.eth.abi.encodeParameter('uint8', 3);
+      let chainid = web3.eth.abi.encodeParameter('uint8', 1);
       let nonce = web3.eth.abi.encodeParameter('uint32', 0);
-      let bidamt = web3.eth.abi.encodeParameter('uint256', web3.utils.toWei('1'));
+      //let bidamt = web3.eth.abi.encodeParameter('uint256', web3.utils.toWei('1'));
       let nftaddress = web3.eth.abi.encodeParameter('address', nftc.address);
       let tokenid = web3.eth.abi.encodeParameter('uint256', 0);
-      const TEST_BID = web3.utils.sha3(contractaddress, chainid, nonce, bidamt, nftaddress, tokenid);
-      this.ecdsa.acceptBid(TEST_BID, nonce, accounts[0], bidamt, nftaddress, tokenid);
+      let params = web3.eth.abi.encodeParameters(['address', 'uint8', 'uint32', 'uint256', 'address', 'uint256'],[this.ecdsa.address, 1, 0, web3.utils.toWei('1'), nftc.address, 0]);
+      console.log(accounts);
+      console.log(params);
+      console.log(await this.ecdsa.testenc(0, web3.utils.toWei('1'), nftc.address, 0))
+      
+      const TEST_BID = web3.utils.keccak256(params);
+      // Create the signature
+      const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
+      console.log(await this.ecdsa.testrec(signature, 0, web3.utils.toWei('1'), nftc.address, 0))
+      console.log(await this.ecdsa.recover(TEST_BID, signature))
+      let accountant = await zaccountant.new();
+      await this.ecdsa.init(accountant.address);
+      await accountant.Deposit({from: accounts[0], value: web3.utils.toWei('1')})
+      await accountant.SetZauction(this.ecdsa.address);
+      await this.ecdsa.acceptBid(signature, 0, accounts[0], web3.utils.toWei('1'), nftc.address, 0, {from: accounts[1]});
       //expect(await this.ecdsa.toEthSignedMessageHash(TEST_MESSAGE)).to.equal(toEthSignedMessageHash(TEST_MESSAGE));
     });
   });
