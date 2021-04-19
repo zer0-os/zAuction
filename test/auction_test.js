@@ -278,4 +278,31 @@ contract('ECDSA', function (accounts) {
     });
   });
 
+  context('with invalid data', function () {
+    it('should revert when bid is expired', async function () {
+      let nftc = await nftcontract.new('Test721', 'TST', {
+        "id": 0,
+        "description": "My NFT",
+        "external_url": "https://forum.openzeppelin.com/t/create-an-nft-and-deploy-to-a-public-testnet-using-truffle/2961",
+        "image": "https://twemoji.maxcdn.com/svg/1f40e.svg",
+        "name": "My NFT 0"
+      });
+      await nftc.mint(accounts[1]);
+      await nftc.approve(this.ecdsa.address, 0, {from: accounts[1]});
+      let params = web3.eth.abi.encodeParameters(['address', 'uint8', 'uint256', 'address', 'uint256', 'uint256'],
+      [this.ecdsa.address, 1, web3.utils.toWei('1'), nftc.address, 0, 0]);      
+      const TEST_BID = web3.utils.keccak256(params);
+      // Create the signature
+      const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
+
+      await expectRevert(this.ecdsa.acceptBid(signature, accounts[0], web3.utils.toWei('1'), nftc.address, 0, 0, {from: accounts[1]}), 'zAuction: bid expired');
+    });
+  });
+
+  context('after accepted bid', function () {
+    it('should successfully withdraw', async function () {
+      this.accountant.Withdraw(web3.utils.toWei('1'), {from: accounts[1]});
+    });
+  });
+
 });
