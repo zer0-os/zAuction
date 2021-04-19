@@ -6,7 +6,7 @@ const { expect } = require('chai');
 const zAuction = artifacts.require('zAuction');
 const zaccountant = artifacts.require('zAuctionAccountant');
 const nftcontract = artifacts.require('ERC721TestToken');
-
+const weth = artifacts.require('IERC20')
 
 const TEST_MESSAGE = web3.utils.sha3('OpenZeppelin');
 const WRONG_MESSAGE = web3.utils.sha3('Nope');

@@ -5,14 +5,19 @@ pragma solidity ^0.8.1;
 import "./oz/util/SafeMath.sol";
 
 contract zAuctionAccountant {
-    address zauction;
-    address admin;
-    mapping(address => uint256) ethbalance;
+    address public zauction;
+    address public admin;
+    mapping(address => uint256) public ethbalance;
 
     event Deposited(address indexed depositer, uint256 amount);
-    event Withdrawn(address indexed withrawer, uint256 amount);
-
-    constructor(){//address administrator){ 
+    event Withdrew(address indexed withrawer, uint256 amount);
+    event zDeposited(address indexed depositer, uint256 amount);
+    event zWithdrew(address indexed withrawer, uint256 amount);
+    event zExchanged(address indexed from, address indexed to, uint256 amount);
+    event ZauctionSet(address);
+    event AdminSet(address, address);
+    
+    constructor(){
         admin = msg.sender;
     }
 
@@ -31,30 +36,34 @@ contract zAuctionAccountant {
     }
 
     function Withdraw(uint256 amount) external {
-        require(ethbalance[msg.sender] >= amount);
         ethbalance[msg.sender] = SafeMath.sub(ethbalance[msg.sender], amount);
         payable(msg.sender).transfer(amount);
-        emit Withdrawn(msg.sender, amount);
+        emit Withdrew(msg.sender, amount);
     }
 
     function zDeposit(address to) external payable onlyZauction {
         ethbalance[to] = SafeMath.add(ethbalance[to], msg.value);
+        emit zDeposited(to, msg.value);
     }
 
     function zWithdraw(address from, uint256 amount) external onlyZauction {
         ethbalance[from] = SafeMath.sub(ethbalance[from], amount);
+        emit zWithdrew(from, amount);
     }
 
     function Exchange(address from, address to, uint256 amount) external onlyZauction {
         ethbalance[from] = SafeMath.sub(ethbalance[from], amount);
         ethbalance[to] = SafeMath.add(ethbalance[to], amount);
+        emit zExchanged(from, to, amount);
     } 
 
-    function SetZauction(address zauctionaddress) external {
+    function SetZauction(address zauctionaddress) external onlyAdmin{
         zauction = zauctionaddress;
+        emit ZauctionSet(zauctionaddress);
     }
 
     function SetAdmin(address newadmin) external onlyAdmin{
-        
+        admin = newadmin;
+        emit AdminSet(msg.sender, newadmin);
     }
 }
