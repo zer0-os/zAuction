@@ -4,7 +4,8 @@ const token = artifacts.require("ERC721TestToken.sol");
 
 module.exports = async function(deployer) {
   await deployer.deploy(zAuctionAccountant);
-  await deployer.deploy(zAuction);
+  let zaad = await zAuctionAccountant.deployed();
+  await deployer.deploy(zAuction, zaad.address);
   await deployer.deploy(token, 'Test 721', 'TEST', {
     "id": 0,
     "description": "My NFT",
@@ -13,11 +14,12 @@ module.exports = async function(deployer) {
     "name": "My NFT 0"
   });
 
+  
   let zad = await zAuction.deployed();
-  let zaad = await zAuctionAccountant.deployed();
+  
   let td = await token.deployed();
 
-  td.mint("0xD3a9ac5FfCFeb6100349644D90376577d966f78E");
+  //td.mint("0xD3a9ac5FfCFeb6100349644D90376577d966f78E");
   //zaad.SetZauction(zad.address);
   //zaad.Deposit({value: 1000000000000000000});
   //console.log("owner of 0: ", await td.ownerOf(0));
