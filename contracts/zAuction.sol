@@ -16,12 +16,10 @@ contract zAuction {
 
     mapping(uint256 => bool) public randUsed;
 
-    event BidAccepted(address indexed bidder, address indexed seller, uint256 amount, address nftaddress, uint256 tokenid);
-    event WethBidAccepted(address indexed bidder, address indexed seller, uint256 amount, address nftaddress, uint256 tokenid);
+    event BidAccepted(address indexed bidder, address indexed seller, uint256 amount, address nftaddress, uint256 tokenid, uint256 expiretime);
+    event WethBidAccepted(address indexed bidder, address indexed seller, uint256 amount, address nftaddress, uint256 tokenid, uint256 expiretime);
 
-    function init(address accountantaddress) external {
-        require(!initialized);
-        initialized = true;
+    constructor(address accountantaddress) {
         accountant = zAuctionAccountant(accountantaddress);
     }
 
@@ -32,27 +30,31 @@ contract zAuction {
     /// @param bid eth amount bid
     /// @param nftaddress contract address of the nft we are transferring
     /// @param tokenid token id we are transferring
-    function acceptBid(bytes memory signature, uint256 rand, address bidder, uint256 bid, address nftaddress, uint256 tokenid) external {
-        address recoveredbidder = recover(toEthSignedMessageHash(keccak256(abi.encode(rand, address(this), block.chainid, bid, nftaddress, tokenid))), signature);
+    function acceptBid(bytes memory signature, uint256 rand, address bidder, uint256 bid, address nftaddress, uint256 tokenid, uint256 expiretime) external {
+        require(expiretime < block.timestamp, 'zAuction: bid expired');
+        require(!randUsed[rand], 'zAuction: Random nonce already used');
+        address recoveredbidder = recover(toEthSignedMessageHash(keccak256(abi.encode(rand, address(this), block.chainid, bid, nftaddress, tokenid, expiretime))), signature);
         require(bidder == recoveredbidder, 'zAuction: incorrect bidder');
-        require(!randUsed[rand], 'Random nonce already used');
+        
         randUsed[rand] = true;
         IERC721 nftcontract = IERC721(nftaddress);
         accountant.Exchange(bidder, msg.sender, bid);
         nftcontract.transferFrom(msg.sender, bidder, tokenid);
-        emit BidAccepted(bidder, msg.sender, bid, nftaddress, tokenid);
+        emit BidAccepted(bidder, msg.sender, bid, nftaddress, tokenid, expiretime);
     }
     
     /// @dev 'true' in the hash here is the eth/weth switch
-    function acceptWethBid(bytes memory signature, uint256 rand, address bidder, uint256 bid, address nftaddress, uint256 tokenid) external {
-        address recoveredbidder = recover(toEthSignedMessageHash(keccak256(abi.encode(rand, address(this), block.chainid, bid, nftaddress, tokenid, true))), signature);
+    function acceptWethBid(bytes memory signature, uint256 rand, address bidder, uint256 bid, address nftaddress, uint256 tokenid, uint256 expiretime) external {
+        require(expiretime < block.timestamp, 'zAuction: bid expired');
+        require(!randUsed[rand], 'zAuction: Random nonce already used');
+        address recoveredbidder = recover(toEthSignedMessageHash(keccak256(abi.encode(rand, address(this), block.chainid, bid, nftaddress, tokenid, expiretime, true))), signature);
         require(bidder == recoveredbidder, 'zAuction: incorrect bidder');
-        require(!randUsed[rand], 'Random nonce already used');
+        
         randUsed[rand] = true;
         IERC721 nftcontract = IERC721(nftaddress);
         weth.transferFrom(bidder, msg.sender, bid);
         nftcontract.transferFrom(msg.sender, bidder, tokenid);
-        emit WethBidAccepted(bidder, msg.sender, bid, nftaddress, tokenid);
+        emit WethBidAccepted(bidder, msg.sender, bid, nftaddress, tokenid, expiretime);
     }
     
     function recover(bytes32 hash, bytes memory signature) public pure returns (address) {
