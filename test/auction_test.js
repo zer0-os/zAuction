@@ -161,8 +161,8 @@ contract('ECDSA', function (accounts) {
       });
       await nftc.mint(accounts[1]);
       await nftc.approve(this.ecdsa.address, 0, {from: accounts[1]});
-      let params = web3.eth.abi.encodeParameters(['address', 'uint8', 'uint256', 'address', 'uint256', 'uint256'],
-      [this.ecdsa.address, 1, web3.utils.toWei('1'), nftc.address, 0, 999999999999999]);      
+      let params = web3.eth.abi.encodeParameters(['address', 'uint8', 'uint256', 'address', 'uint256', 'uint256','uint8'],
+      [this.ecdsa.address, 1, web3.utils.toWei('1'), nftc.address, 0, 999999999999999, 2]);      
       const TEST_BID = web3.utils.keccak256(params);
       // Create the signature
       const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
@@ -184,8 +184,8 @@ contract('ECDSA', function (accounts) {
       });
       await nftc.mint(accounts[1]);
       await nftc.approve(this.ecdsa.address, 0, {from: accounts[1]});
-      let params = web3.eth.abi.encodeParameters(['address', 'uint8', 'uint256', 'address', 'uint256', 'uint256'],
-      [this.ecdsa.address, 1, web3.utils.toWei('1'), nftc.address, 0, 999999999999999]);      
+      let params = web3.eth.abi.encodeParameters(['address', 'uint8', 'uint256', 'address', 'uint256', 'uint256','uint8'],
+      [this.ecdsa.address, 1, web3.utils.toWei('1'), nftc.address, 0, 999999999999999, 2]);      
       const TEST_BID = web3.utils.keccak256(params);
       // Create the signature
       const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
@@ -205,8 +205,8 @@ contract('ECDSA', function (accounts) {
       });
       await nftc.mint(accounts[1]);
       await nftc.approve(this.ecdsa.address, 0, {from: accounts[1]});
-      let params = web3.eth.abi.encodeParameters(['address', 'uint8', 'uint256', 'address', 'uint256', 'uint256'],
-      [this.ecdsa.address, 1, web3.utils.toWei('1'), nftc.address, 0, 999999999999999]);      
+      let params = web3.eth.abi.encodeParameters(['address', 'uint8', 'uint256', 'address', 'uint256', 'uint256','uint8'],
+      [this.ecdsa.address, 1, web3.utils.toWei('1'), nftc.address, 0, 999999999999999, 2]);      
       const TEST_BID = web3.utils.keccak256(params);
       // Create the signature
       const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
@@ -226,8 +226,8 @@ contract('ECDSA', function (accounts) {
       });
       await nftc.mint(accounts[1]);
       await nftc.approve(this.ecdsa.address, 0, {from: accounts[1]});
-      let params = web3.eth.abi.encodeParameters(['address', 'uint8', 'uint256', 'address', 'uint256', 'uint256'],
-      [this.ecdsa.address, 1, web3.utils.toWei('1'), nftc.address, 0, 999999999999999]);      
+      let params = web3.eth.abi.encodeParameters(['address', 'uint8', 'uint256', 'address', 'uint256', 'uint256','uint8'],
+      [this.ecdsa.address, 1, web3.utils.toWei('1'), nftc.address, 0, 999999999999999, 2]);      
       const TEST_BID = web3.utils.keccak256(params);
       // Create the signature
       const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
@@ -247,8 +247,8 @@ contract('ECDSA', function (accounts) {
       });
       await nftc.mint(accounts[1]);
       await nftc.approve(this.ecdsa.address, 0, {from: accounts[1]});
-      let params = web3.eth.abi.encodeParameters(['address', 'uint8', 'uint256', 'address', 'uint256', 'uint256'],
-      [this.ecdsa.address, 1, web3.utils.toWei('1'), nftc.address, 0, 999999999999999]);      
+      let params = web3.eth.abi.encodeParameters(['address', 'uint8', 'uint256', 'address', 'uint256', 'uint256','uint8'],
+      [this.ecdsa.address, 1, web3.utils.toWei('1'), nftc.address, 0, 999999999999999, 2]);      
       const TEST_BID = web3.utils.keccak256(params);
       // Create the signature
       const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
@@ -268,8 +268,8 @@ contract('ECDSA', function (accounts) {
       });
       await nftc.mint(accounts[1]);
       await nftc.approve(this.ecdsa.address, 0, {from: accounts[1]});
-      let params = web3.eth.abi.encodeParameters(['address', 'uint8', 'uint256', 'address', 'uint256', 'uint256'],
-      [this.ecdsa.address, 1, web3.utils.toWei('1'), nftc.address, 0, 999999999999999]);      
+      let params = web3.eth.abi.encodeParameters(['address', 'uint8', 'uint256', 'address', 'uint256', 'uint256', 'uint8'],
+      [this.ecdsa.address, 1, web3.utils.toWei('1'), nftc.address, 0, 999999999999999, 2]);      
       const TEST_BID = web3.utils.keccak256(params);
       // Create the signature
       const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
@@ -289,8 +289,8 @@ contract('ECDSA', function (accounts) {
       });
       await nftc.mint(accounts[1]);
       await nftc.approve(this.ecdsa.address, 0, {from: accounts[1]});
-      let params = web3.eth.abi.encodeParameters(['address', 'uint8', 'uint256', 'address', 'uint256', 'uint256'],
-      [this.ecdsa.address, 1, web3.utils.toWei('1'), nftc.address, 0, 0]);      
+      let params = web3.eth.abi.encodeParameters(['address', 'uint8', 'uint256', 'address', 'uint256', 'uint256', 'uint8'],
+      [this.ecdsa.address, 1, web3.utils.toWei('1'), nftc.address, 0, 0, 2]);      
       const TEST_BID = web3.utils.keccak256(params);
       // Create the signature
       const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));

@@ -12,7 +12,6 @@ contract zAuctionAccountant {
     event Deposited(address indexed depositer, uint256 amount);
     event Withdrew(address indexed withrawer, uint256 amount);
     event zDeposited(address indexed depositer, uint256 amount);
-    event zWithdrew(address indexed withrawer, uint256 amount);
     event zExchanged(address indexed from, address indexed to, uint256 amount);
     event ZauctionSet(address);
     event AdminSet(address, address);
@@ -39,6 +38,11 @@ contract zAuctionAccountant {
         ethbalance[msg.sender] = SafeMath.sub(ethbalance[msg.sender], amount);
         payable(msg.sender).transfer(amount);
         emit Withdrew(msg.sender, amount);
+    }
+
+    function zDeposit(address addy) external payable {
+        ethbalance[addy] = SafeMath.add(ethbalance[addy], msg.value);
+        emit zDeposited(addy, msg.value);
     }
 
     function Exchange(address from, address to, uint256 amount) external onlyZauction {
