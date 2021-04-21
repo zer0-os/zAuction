@@ -16,7 +16,13 @@ contract('ECDSA', function (accounts) {
   console.log(other);
   before(async function (){
     this.accountant = await zaccountant.new();
-    await this.accountant.Deposit({from: accounts[0], value: web3.utils.toWei('2')});
+    this. nftc = await nftcontract.new('Test721', 'TST', {
+      "id": 0,
+      "description": "My NFT",
+      "external_url": "https://forum.openzeppelin.com/t/create-an-nft-and-deploy-to-a-public-testnet-using-truffle/2961",
+      "image": "https://twemoji.maxcdn.com/svg/1f40e.svg",
+      "name": "My NFT 0"
+    });
   })
   beforeEach(async function () {
     this.ecdsa = await zAuction.new(this.accountant.address);
@@ -150,159 +156,161 @@ contract('ECDSA', function (accounts) {
     });
   });
 
-  context('with correctly encoded data', function () {
+  context('with correctly encoded bid data', function () {
     it('should successfully accept bid, transfer nft, and exchange eth', async function () {
-      let nftc = await nftcontract.new('Test721', 'TST', {
-        "id": 0,
-        "description": "My NFT",
-        "external_url": "https://forum.openzeppelin.com/t/create-an-nft-and-deploy-to-a-public-testnet-using-truffle/2961",
-        "image": "https://twemoji.maxcdn.com/svg/1f40e.svg",
-        "name": "My NFT 0"
-      });
-      await nftc.mint(accounts[1]);
-      await nftc.approve(this.ecdsa.address, 0, {from: accounts[1]});
+      let functionselector = 2;
+      let tokenid = 2;
+      await this.accountant.Deposit({from: accounts[0], value: web3.utils.toWei('1')});
+      await this.nftc.mint(accounts[1]);
+      await this.nftc.mint(accounts[1]);
+      await this.nftc.mint(accounts[1]);
+      await this.nftc.approve(this.ecdsa.address, tokenid, {from: accounts[1]});
       let params = web3.eth.abi.encodeParameters(['address', 'uint8', 'uint256', 'address', 'uint256', 'uint256','uint8'],
-      [this.ecdsa.address, 1, web3.utils.toWei('1'), nftc.address, 0, 999999999999999, 2]);      
+      [this.ecdsa.address, 1, web3.utils.toWei('1'), this.nftc.address, tokenid, 999999999999999, functionselector]);      
       const TEST_BID = web3.utils.keccak256(params);
       // Create the signature
       const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
-      await this.ecdsa.acceptBid(signature, accounts[0], web3.utils.toWei('1'), nftc.address, 0, 999999999999999, {from: accounts[1]});
-      expect(await nftc.ownerOf(0)).to.equal(accounts[0]);
-      console.log(web3.utils.toWei('1'));
+      await this.ecdsa.acceptBid(signature, accounts[0], web3.utils.toWei('1'), this.nftc.address, tokenid, 999999999999999, functionselector, {from: accounts[1]});
+      expect(await this.nftc.ownerOf(tokenid)).to.equal(accounts[0]);
       expect((await this.accountant.ethbalance(accounts[1])).toString()).to.equal(web3.utils.toWei('1'));
     });
   });
 
   context('with invalid data', function () {
     it('should revert when repeating random nonce', async function () {
-      let nftc = await nftcontract.new('Test721', 'TST', {
-        "id": 0,
-        "description": "My NFT",
-        "external_url": "https://forum.openzeppelin.com/t/create-an-nft-and-deploy-to-a-public-testnet-using-truffle/2961",
-        "image": "https://twemoji.maxcdn.com/svg/1f40e.svg",
-        "name": "My NFT 0"
-      });
-      await nftc.mint(accounts[1]);
-      await nftc.approve(this.ecdsa.address, 0, {from: accounts[1]});
+      let functionselector = 2;
+      let tokenid = 3;
+      await this.accountant.Deposit({from: accounts[0], value: web3.utils.toWei('1')});
+      await this.nftc.mint(accounts[1]);
+      await this.nftc.approve(this.ecdsa.address, tokenid, {from: accounts[1]});
       let params = web3.eth.abi.encodeParameters(['address', 'uint8', 'uint256', 'address', 'uint256', 'uint256','uint8'],
-      [this.ecdsa.address, 1, web3.utils.toWei('1'), nftc.address, 0, 999999999999999, 2]);      
+      [this.ecdsa.address, 1, web3.utils.toWei('1'), this.nftc.address, tokenid, 999999999999999, functionselector]);      
       const TEST_BID = web3.utils.keccak256(params);
       // Create the signature
       const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
-      await this.ecdsa.acceptBid(signature, accounts[0], web3.utils.toWei('1'), nftc.address, 0, 999999999999999, {from: accounts[1]});
-      await expectRevert(this.ecdsa.acceptBid(signature, accounts[0], web3.utils.toWei('1'), nftc.address, 0, 999999999999999, {from: accounts[1]}), 'zAuction: Signature already used');
+      await this.ecdsa.acceptBid(signature, accounts[0], web3.utils.toWei('1'), this.nftc.address, tokenid, 999999999999999, functionselector, {from: accounts[1]});
+      await expectRevert(this.ecdsa.acceptBid(signature, accounts[0], web3.utils.toWei('1'), this.nftc.address, tokenid, 999999999999999, functionselector, {from: accounts[1]}), 'zAuction: Signature already used');
     });
   });
 
   context('with invalid data', function () {
     it('should revert when bidder doesnt match recovered bidder', async function () {
-      let nftc = await nftcontract.new('Test721', 'TST', {
-        "id": 0,
-        "description": "My NFT",
-        "external_url": "https://forum.openzeppelin.com/t/create-an-nft-and-deploy-to-a-public-testnet-using-truffle/2961",
-        "image": "https://twemoji.maxcdn.com/svg/1f40e.svg",
-        "name": "My NFT 0"
-      });
-      await nftc.mint(accounts[1]);
-      await nftc.approve(this.ecdsa.address, 0, {from: accounts[1]});
+      let functionselector = 2;
+      let tokenid = 4;
+      await this.nftc.mint(accounts[1]);
+      await this.nftc.approve(this.ecdsa.address, tokenid, {from: accounts[1]});
       let params = web3.eth.abi.encodeParameters(['address', 'uint8', 'uint256', 'address', 'uint256', 'uint256','uint8'],
-      [this.ecdsa.address, 1, web3.utils.toWei('1'), nftc.address, 0, 999999999999999, 2]);      
+      [this.ecdsa.address, 1, web3.utils.toWei('1'), this.nftc.address, tokenid, 999999999999999, functionselector]);      
       const TEST_BID = web3.utils.keccak256(params);
       // Create the signature
       const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
 
-      await expectRevert(this.ecdsa.acceptBid(signature, accounts[2], web3.utils.toWei('1'), nftc.address, 0, 999999999999999, {from: accounts[1]}), 'zAuction: incorrect bidder');
+      await expectRevert(this.ecdsa.acceptBid(signature, accounts[2], web3.utils.toWei('1'), this.nftc.address, tokenid, 999999999999999, functionselector, {from: accounts[1]}), 'zAuction: recovered incorrect bidder');
     });
   });
 
   context('with invalid data', function () {
     it('should revert when amount doesnt match', async function () {
-      let nftc = await nftcontract.new('Test721', 'TST', {
-        "id": 0,
-        "description": "My NFT",
-        "external_url": "https://forum.openzeppelin.com/t/create-an-nft-and-deploy-to-a-public-testnet-using-truffle/2961",
-        "image": "https://twemoji.maxcdn.com/svg/1f40e.svg",
-        "name": "My NFT 0"
-      });
-      await nftc.mint(accounts[1]);
-      await nftc.approve(this.ecdsa.address, 0, {from: accounts[1]});
+      let functionselector = 2;
+      let tokenid = 5;
+      await this.nftc.mint(accounts[1]);
+      await this.nftc.approve(this.ecdsa.address, tokenid, {from: accounts[1]});
       let params = web3.eth.abi.encodeParameters(['address', 'uint8', 'uint256', 'address', 'uint256', 'uint256','uint8'],
-      [this.ecdsa.address, 1, web3.utils.toWei('1'), nftc.address, 0, 999999999999999, 2]);      
+      [this.ecdsa.address, 1, web3.utils.toWei('1'), this.nftc.address, tokenid, 999999999999999, functionselector]);      
       const TEST_BID = web3.utils.keccak256(params);
       // Create the signature
       const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
 
-      await expectRevert(this.ecdsa.acceptBid(signature, accounts[0], web3.utils.toWei('2'), nftc.address, 0, 999999999999999, {from: accounts[1]}), 'zAuction: incorrect bidder');
+      await expectRevert(this.ecdsa.acceptBid(signature, accounts[0], web3.utils.toWei('2'), this.nftc.address, tokenid, 999999999999999, functionselector, {from: accounts[1]}), 'zAuction: recovered incorrect bidder');
     });
   });
 
   context('with invalid data', function () {
     it('should revert when nftaddress doesnt match', async function () {
-      let nftc = await nftcontract.new('Test721', 'TST', {
-        "id": 0,
-        "description": "My NFT",
-        "external_url": "https://forum.openzeppelin.com/t/create-an-nft-and-deploy-to-a-public-testnet-using-truffle/2961",
-        "image": "https://twemoji.maxcdn.com/svg/1f40e.svg",
-        "name": "My NFT 0"
-      });
-      await nftc.mint(accounts[1]);
-      await nftc.approve(this.ecdsa.address, 0, {from: accounts[1]});
+      let functionselector = 2;
+      let tokenid = 6;
+      await this.nftc.mint(accounts[1]);
+      await this.nftc.approve(this.ecdsa.address, tokenid, {from: accounts[1]});
       let params = web3.eth.abi.encodeParameters(['address', 'uint8', 'uint256', 'address', 'uint256', 'uint256','uint8'],
-      [this.ecdsa.address, 1, web3.utils.toWei('1'), nftc.address, 0, 999999999999999, 2]);      
+      [this.ecdsa.address, 1, web3.utils.toWei('1'), this.nftc.address, tokenid, 999999999999999, functionselector]);      
       const TEST_BID = web3.utils.keccak256(params);
       // Create the signature
       const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
 
-      await expectRevert(this.ecdsa.acceptBid(signature, accounts[0], web3.utils.toWei('1'), accounts[3], 0, 999999999999999, {from: accounts[1]}), 'zAuction: incorrect bidder');
+      await expectRevert(this.ecdsa.acceptBid(signature, accounts[0], web3.utils.toWei('1'), accounts[3], tokenid, 999999999999999, functionselector,{from: accounts[1]}), 'zAuction: recovered incorrect bidder');
     });
   });
 
   context('with invalid data', function () {
     it('should revert when tokenid doesnt match', async function () {
-      let nftc = await nftcontract.new('Test721', 'TST', {
-        "id": 0,
-        "description": "My NFT",
-        "external_url": "https://forum.openzeppelin.com/t/create-an-nft-and-deploy-to-a-public-testnet-using-truffle/2961",
-        "image": "https://twemoji.maxcdn.com/svg/1f40e.svg",
-        "name": "My NFT 0"
-      });
-      await nftc.mint(accounts[1]);
-      await nftc.approve(this.ecdsa.address, 0, {from: accounts[1]});
+      let functionselector = 2;
+      let tokenid = 7;
+      await this.nftc.mint(accounts[1]);
+      await this.nftc.approve(this.ecdsa.address, tokenid, {from: accounts[1]});
       let params = web3.eth.abi.encodeParameters(['address', 'uint8', 'uint256', 'address', 'uint256', 'uint256', 'uint8'],
-      [this.ecdsa.address, 1, web3.utils.toWei('1'), nftc.address, 0, 999999999999999, 2]);      
+      [this.ecdsa.address, 1, web3.utils.toWei('1'), this.nftc.address, tokenid, 999999999999999, functionselector]);      
       const TEST_BID = web3.utils.keccak256(params);
       // Create the signature
       const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
 
-      await expectRevert(this.ecdsa.acceptBid(signature, accounts[0], web3.utils.toWei('1'), nftc.address, 9001, 999999999999999, {from: accounts[1]}), 'zAuction: incorrect bidder');
+      await expectRevert(this.ecdsa.acceptBid(signature, accounts[0], web3.utils.toWei('1'), this.nftc.address, tokenid+9001, 999999999999999, functionselector, {from: accounts[1]}), 'zAuction: recovered incorrect bidder');
     });
   });
 
   context('with invalid data', function () {
     it('should revert when bid is expired', async function () {
-      let nftc = await nftcontract.new('Test721', 'TST', {
-        "id": 0,
-        "description": "My NFT",
-        "external_url": "https://forum.openzeppelin.com/t/create-an-nft-and-deploy-to-a-public-testnet-using-truffle/2961",
-        "image": "https://twemoji.maxcdn.com/svg/1f40e.svg",
-        "name": "My NFT 0"
-      });
-      await nftc.mint(accounts[1]);
-      await nftc.approve(this.ecdsa.address, 0, {from: accounts[1]});
+      let functionselector = 2;
+      let tokenid = 8;
+      await this.nftc.mint(accounts[1]);
+      await this.nftc.approve(this.ecdsa.address, tokenid, {from: accounts[1]});
       let params = web3.eth.abi.encodeParameters(['address', 'uint8', 'uint256', 'address', 'uint256', 'uint256', 'uint8'],
-      [this.ecdsa.address, 1, web3.utils.toWei('1'), nftc.address, 0, 0, 2]);      
+      [this.ecdsa.address, 1, web3.utils.toWei('1'), this.nftc.address, tokenid, 0, 2]);      
       const TEST_BID = web3.utils.keccak256(params);
       // Create the signature
       const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
 
-      await expectRevert(this.ecdsa.acceptBid(signature, accounts[0], web3.utils.toWei('1'), nftc.address, 0, 0, {from: accounts[1]}), 'zAuction: bid expired');
+      await expectRevert(this.ecdsa.acceptBid(signature, accounts[0], web3.utils.toWei('1'), this.nftc.address, tokenid, 0, functionselector, {from: accounts[1]}), 'zAuction: bid expired');
     });
   });
 
-  context('after accepted bid', function () {
+  context('with correctly encoded sale data and value', function () {
+    it('should successfully purchase, transfer nft, and zDeposit eth for seller', async function () {
+      let functionselector = 1;
+      let tokenid = 9;
+      await this.nftc.mint(accounts[1]);
+      await this.nftc.approve(this.ecdsa.address, tokenid, {from: accounts[1]});
+      let params = web3.eth.abi.encodeParameters(['address', 'uint8', 'uint256', 'address', 'uint256', 'uint256', 'uint8'],
+      [this.ecdsa.address, 1, web3.utils.toWei('1'), this.nftc.address, tokenid, 999999999999999, functionselector]);      
+      const TEST_SALE = web3.utils.keccak256(params);
+      // Create the signature
+      const signature = fixSignature(await web3.eth.sign(TEST_SALE, accounts[1]));
+      this.ecdsa.depositAndPurchase(signature, accounts[1], web3.utils.toWei('1'), this.nftc.address, tokenid, 999999999999999, functionselector, {from: accounts[0], value: web3.utils.toWei('1')});
+      expect(await this.nftc.ownerOf(tokenid)).to.equal(accounts[0]);
+      expect((await this.accountant.ethbalance(accounts[1])).toString()).to.equal(web3.utils.toWei('3'));
+    });
+  });
+
+  context('with correctly encoded sale data', function () {
+    it('should successfully purchase, transfer nft, and exchange eth in accountant', async function () {
+      let functionselector = 1;
+      let tokenid = 10;
+      await this.accountant.Deposit({from: accounts[0], value: web3.utils.toWei('1')});
+      await this.nftc.mint(accounts[1]);
+      await this.nftc.approve(this.ecdsa.address, tokenid, {from: accounts[1]});
+      let params = web3.eth.abi.encodeParameters(['address', 'uint8', 'uint256', 'address', 'uint256', 'uint256', 'uint8'],
+      [this.ecdsa.address, 1, web3.utils.toWei('1'), this.nftc.address, tokenid, 999999999999999, functionselector]);      
+      const TEST_SALE = web3.utils.keccak256(params);
+      // Create the signature
+      const signature = fixSignature(await web3.eth.sign(TEST_SALE, accounts[1]));
+      this.ecdsa.purchase(signature, accounts[1], web3.utils.toWei('1'), this.nftc.address, tokenid, 999999999999999, functionselector, {from: accounts[0]});
+      expect(await this.nftc.ownerOf(tokenid)).to.equal(accounts[0]);
+      expect((await this.accountant.ethbalance(accounts[1])).toString()).to.equal(web3.utils.toWei('4'));
+    });
+  });
+
+  context('after successful transactions', function () {
     it('should successfully withdraw', async function () {
-      this.accountant.Withdraw(web3.utils.toWei('1'), {from: accounts[1]});
+      this.accountant.Withdraw(web3.utils.toWei('3'), {from: accounts[1]});
     });
   });
-
 });
