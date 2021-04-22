@@ -280,11 +280,32 @@ console.log(contract);
   //let eDB = {"bids":[]}
   let DB = {"bids":[{"account":"0xc8289f53c49dc9dfc040c4b25e391547dee25e6b","name":"Pizza","price":"216.00","img":"http://placeimg.com/640/480/nature"},{"account":"0xa9b0703d1debd7d8c251f597af5fb0fe518e5ad9","name":"Hat","price":"559.00","img":"http://placeimg.com/640/480/business"},{"account":"0x39ec1855c69e77fd549ffc7a89d8dc63b4b886db","name":"Pizza","price":"277.00","img":"http://placeimg.com/640/480/fashion"},{"account":"0x3175cb28db86e64b3d7fd1daa1e6b2ce65eaa79c","name":"Chair","price":"706.00","img":"http://placeimg.com/640/480/city"},{"account":"0xbfefc62ebcbc0e3cdcdd9d20389dc20d3645fa90","name":"Shoes","price":"871.00","img":"http://placeimg.com/640/480/people"},{"account":"0xb1d12d3e7fe9c9919f92a317e3b49efafa954eee","name":"Shirt","price":"821.00","img":"http://placeimg.com/640/480/fashion"},{"account":"0xcbfefd2bdf472bf392d4bfcfa4cd7fdeefd84fea","name":"Cheese","price":"821.00","img":"http://placeimg.com/640/480/business"},{"account":"0xebb7f5dc95b2b0fea4ea4a3fc697f12f268796e7","name":"Shoes","price":"355.00","img":"http://placeimg.com/640/480/food"},{"account":"0xdab762c9a3f5d10b1437fff4b24edffedd029acc","name":"Soap","price":"831.00","img":"http://placeimg.com/640/480/nightlife"},{"account":"0x6ff319e74c666d2d9af32ac12fe8ee97cc37759e","name":"Table","price":"198.00","img":"http://placeimg.com/640/480/food"},{"account":"0xd0bfa19a98b7db48db7acd1b50eadb50eacbb7ce","name":"Pizza","price":"364.00","img":"http://placeimg.com/640/480/cats"},{"account":"0xeed8fbf0dce7ed1e3b4d5e5de7fcbea1cfac9cf4","name":"Car","price":"946.00","img":"http://placeimg.com/640/480/nightlife"},{"account":"0xaac7a85400ff19c76d40d8b9cd1e770fb58682ba","name":"Soap","price":"420.00","img":"http://placeimg.com/640/480/fashion"}]}
   //let eDB = {"bids":[{"account":"0xc8289f53c49dc9dfc040c4b25e391547dee25e6b","name":"Pizza","price":"216.00","img":"http://placeimg.com/640/480/nature"}]}
+  let profilePopoverHidden = false
 
   return (
     <div className="app">
     	<Titlebar />
       <div className="body">
+        {!profilePopoverHidden &&
+          <div className="profile-popover" data-boundry="viewport">
+            <div className="profile-popover-body">
+              <div className="profile-popover-top">
+                <span className="profile-popover-title">Profile</span>
+                <div className="profile-popover-x" onClick={() => {
+                  console.log(profilePopoverHidden)
+                  profilePopoverHidden = true
+                  console.log(profilePopoverHidden)
+                  }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="white">
+                    <path fillRule={"evenodd"} d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule={"evenodd"} />
+                  </svg>
+                </div>
+              </div>
+              <hr className="profile-popover-hr" />
+              <div className="profile-popover-bottom"></div>
+            </div>
+          </div>
+        }
 
         <div className="testainer" style={{display:"none"}}>
       	  { loading && <p>Still loading..</p>}

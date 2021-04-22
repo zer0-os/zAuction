@@ -15,9 +15,11 @@
 }
 .body {
 	display:flex;
+	position:relative;
 	flex-direction:column;
 	justify-content:center;
 	align-items:center;
+	height:100%;
 }
 .nft_container {
 	width:700px;
@@ -108,4 +110,59 @@
 
 .testainer {
 	color:white;
+}
+input[type="number"] {
+  -webkit-appearance: textfield;
+     -moz-appearance: textfield;
+          appearance: textfield;
+}
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none;
+}
+.profile-popover {
+	position:fixed;
+	top:0;
+	left:0;
+	min-width:100vw;
+	min-height:100vh;
+	z-index:3;
+	display:flex;
+	align-items:center;
+	justify-content:center;
+	backdrop-filter: blur(10px);
+}
+.profile-popover-body {
+	opacity:0.9;
+	background-color:black;
+	border:1px solid white;
+	border-radius:1em;
+	min-width:90vw;
+	min-height:95vh;
+	margin-right:1em;
+	box-shadow: 4px 6px 17px 0px rgba(0, 0, 0, 0.45),
+							0px 0px 4px white inset;
+}
+.profile-popover-top {
+	padding:1em;
+	display:flex;
+	align-items:center;
+	justify-content:space-between;
+}
+.profile-popover-title {
+	color:white;
+	text-shadow: 0 0 3px white;
+	font-size:1.6em;
+	padding-left:0.5em;
+}
+.profile-popover-x {
+	width:2.5em;
+	height:2.5em;
+	text-shadow: 0 0 3px white;
+}
+.profile-popover-x:hover {
+	cursor:pointer;
+}
+.profile-popover-hr {
+	margin:0 1.5em;
 }

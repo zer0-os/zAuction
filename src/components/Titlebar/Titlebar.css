@@ -6,8 +6,16 @@
 	margin-bottom:2em;
 }
 .header-right {
+	display:flex;
+	align-items:center;
 }
 .logo {
 	height:3em;
 	width:3em;
+}
+.profile-avatar {
+	height:2.5em;
+	width:2.5em;
+	padding-right:1em;
+	cursor:pointer;
 }
