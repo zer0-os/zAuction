@@ -3,7 +3,9 @@
   background-image: radial-gradient(circle, #21024e, black);
   min-height: 100vh;
   display: flex;
-  flex-direction: column;
+	flex-direction: column;
+	color:white;
+	font-family: 'UniviaPro-Book';
 }
 @font-face {
   font-family: 'black-tie';
@@ -28,6 +30,14 @@
 	display:flex;
 	flex-direction:row;
 	justify-content:center;
+}
+.title {
+	margin:24px 0px 32px 0px;
+	color:white;
+	text-shadow:2px 4px 6px black;
+}
+.noLink {
+	text-decoration:none;
 }
 .nft-btn {
 	padding:1em;
