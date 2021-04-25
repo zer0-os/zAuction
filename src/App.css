@@ -36,6 +36,9 @@
 	color:white;
 	text-shadow:2px 4px 6px black;
 }
+.tshadow {
+	text-shadow:2px 4px 6px black;
+}
 .noLink {
 	text-decoration:none;
 }

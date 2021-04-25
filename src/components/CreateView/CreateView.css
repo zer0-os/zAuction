@@ -1,0 +1,44 @@
+.create-btn {
+	padding:1em;
+	margin:1em 0;
+	width:100%;
+	background-color:#6306e6;
+	border-radius:28px;
+	border:none;
+	display:inline-block;
+	cursor:pointer;
+	color:#ffffff;
+	font-family:Arial;
+	font-size:17px;
+	padding:17px 28px 14px 28px;
+	text-decoration:none;
+	box-shadow: 4px 6px 12px 0px rgba(0, 0, 0, 0.35);
+	font-family: 'UniviaPro-Book';
+}
+.create-btn:focus {
+  outline:none;
+}
+.create-btn:hover {
+	background-color:#539bff;
+}
+.create-btn:active {
+	position:relative;
+	top:1px;
+}
+.zinput {
+	border:none;
+	margin:10px 0;
+	width:80%;	
+	border-radius:2em;
+	padding:17px 28px 14px 28px;
+	font-size:1em;
+	font-family: 'UniviaPro-Book';
+	box-shadow: 4px 6px 17px 0px rgba(0, 0, 0, 0.45)
+}
+.zinput:focus {
+  outline: none;
+}
+.create-form h3 {
+	margin:12px 0;
+	text-align:left;
+}
