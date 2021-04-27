@@ -48,6 +48,7 @@ import fleek from '@fleekhq/fleek-storage-js';
 // imports
 import './App.css';
 import {UserProvider} from './contexts/userContext';
+import {AuctionProvider} from './contexts/auctionContext';
 import Titlebar from './components/Titlebar/Titlebar';
 import AuctionsView from './components/AuctionsView/AuctionsView';
 import ProfileView from './components/ProfileView/ProfileView';
@@ -134,7 +135,9 @@ function wrappedApp() {
     <ApolloProvider client={client}>
       <Web3ReactProvider getLibrary={getLibrary}>
         <UserProvider>
-          <App />
+          <AuctionProvider>
+            <App />
+          </AuctionProvider>
         </UserProvider>
       </Web3ReactProvider>
     </ApolloProvider>

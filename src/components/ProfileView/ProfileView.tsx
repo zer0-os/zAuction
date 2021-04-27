@@ -23,7 +23,7 @@ const ProfileView = () => {
                 style={{width:"100%",display:"block",flexDirection:"row"}}
               >
               <h2 className="title" style={{margin:"24px 0 10px"}}>Account</h2>
-              <h5 className="tshadow eth-account" style={{margin:"0 0 36px 0"}}>{ state.user }</h5>
+              <h4 className="tshadow eth-account" style={{margin:"0 0 36px 0"}}>{ state.user }</h4>
               <h2 className="title">Your Auctions</h2>
 
               </div>

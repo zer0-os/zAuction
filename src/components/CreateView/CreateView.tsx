@@ -220,7 +220,7 @@ const CreateView = (props) => {
       startTime: "0",
       endTime: "0",
       minBid: "0.1",
-      auctionType: "0"    
+      auctionType: "0" 
     })
     .then(function (response) {
       console.log(response);
