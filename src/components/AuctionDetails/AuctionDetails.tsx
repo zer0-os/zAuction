@@ -1,12 +1,11 @@
 import React, { useContext, useEffect, useState } from 'react';
-import './NftDetails.css';
+import './AuctionDetails.css';
 //import {AuctionContext} from '../../contexts/auctionContext';
-//import Nft from '../Nft/Nft';
 
 
-const NftDetails = (props) => {
+const AuctionDetails = (props: { match: { params: { auctionId: any; }; }; }) => {
   //const { bids } = useContext(AuctionContext);
-  const [nftId, setNftid] = useState("poo");
+  const [auctionId, setAuctionId] = useState(props.match.params.auctionId);
 
   //useEffect(() =>{
   //  if (bids.length) {
@@ -16,11 +15,11 @@ const NftDetails = (props) => {
   //  }
   //}, [bids])
 
-  return nftId ? (
+  return auctionId ? (
     <div>
       <h1 className="title">Auction Details</h1>
       <div className="details-view">
-        <h1>{props.match.params.nftId}</h1>
+        <h1>{auctionId}</h1>
       </div>
     </div>
   ) : (
@@ -32,4 +31,4 @@ const NftDetails = (props) => {
 
 }
 
-export default NftDetails;
+export default AuctionDetails;

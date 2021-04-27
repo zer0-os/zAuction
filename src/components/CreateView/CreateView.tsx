@@ -1,21 +1,27 @@
 import React, { useContext, useState } from 'react';
 import { useWeb3React } from '@web3-react/core';
 import * as ethers from 'ethers';
-import fleek from '@fleekhq/fleek-storage-js';
+import axios from 'axios';
 
 import './CreateView.css';
 
-import nft from '../../nft.png';
+import { UserContext } from '../../contexts/userContext';
 
 const CreateView = (props) => {
+  // web3react
   const { account, library } = useWeb3React();
+  // user Context
+  const [ state ] = useContext(UserContext);
+  // form validation
+  const [ validated, setValidated ] = useState(true);
   // contract address and token id of auction nft
-  const [ CA, setCA ] = useState(null);
-  const [ TI, setTI ] = useState(null);
+  const [ contractAddress, setContractAddress ] = useState(null);
+  const [ tokenId, setTokenId ] = useState(null);
 
+ /*
   const nftcontractaddress = "0x101eD6EeC2CB7813a04614cA97421119219AfC1a";
   const nfttokenid = "0x0";
-  const bidderaddress = account;
+  const bidderaddress = state.user;
   const amt = 1000;
   let bidAmt: number;
 
@@ -28,13 +34,13 @@ const CreateView = (props) => {
     let bidmsg = await library.getSigner().signMessage(ethers.utils.toUtf8Bytes(amt + nftcontractaddress + nfttokenid));
     let newbid = {
       msg: bidmsg,
-      bidder: account,
+      bidder: state.user,
       amount: amt,
       contractaddress: nftcontractaddress,
       tokenid: nfttokenid
     };
     console.log(newbid);
-    appendDB(newbid);
+    //appendDB(newbid);
   }
   
   async function accept() {
@@ -147,7 +153,7 @@ const CreateView = (props) => {
     );
   }
 
-  /*async function instantiateDB() {
+  async function instantiateDB() {
     let result;
     let bidObjStr = '{"bids":[]}';
     let bidObj = JSON.parse(bidObjStr);
@@ -160,7 +166,7 @@ const CreateView = (props) => {
       data: JSON.stringify(bidObj)
     };
     return result = await fleek.upload(input);
-  }*/
+  }
 
   async function getDB() {
     const DB = await fleek.get({
@@ -202,42 +208,84 @@ const CreateView = (props) => {
   		data: JSON.stringify(data)
   	};
   }
+*/
+
+  function createAuction() {
+    console.log("Sending auction to DB")
+    axios.post('http://localhost:5000/api/fleek/createAuction', {
+    //axios.post('https://zproxy.ilios.dev/api/fleek/createAuction', {
+      account: state.user,
+      tokenId: tokenId,
+      contractAddress: contractAddress,
+      startTime: "0",
+      endTime: "0",
+      minBid: "0.1",
+      auctionType: "0"    
+    })
+    .then(function (response) {
+      console.log(response);
+    })
+    .catch(function (error) {
+      console.log(error);
+    });
+  }
 
   function createClick(e) {
     e.preventDefault();
     var t = Math.floor(new Date().getTime() / 1000);
-    console.log(t + '-' + account);
+    if (ethers.utils.isAddress(contractAddress) && tokenId ) {
+      setValidated(true)
+      console.log("time",t,"account",state.user,"contract address",contractAddress,"token id",tokenId);
+      createAuction();
+      
+    } else {
+      setValidated(false)
+    }
   }
   
   return (
     <div className="create-view">
-      <h1 className="title">Auction your NFT</h1>
-      
-      <form className="create-form">
-        <h3 className="tshadow">Contract Address</h3>
-        <input 
-          className="zinput"
-          type="string"
-          onChange={e => {
-            setCA(e.target.value)
-          }}
-          
-        />
-        <h3 className="tshadow">Token Id</h3>
-        <input 
-          className="zinput"
-          type="string"
-          onChange={e => {
-            setTI(e.target.value);
-          }}
-        />
-        <button
-          className="create-btn"
-          onClick={createClick}
-        >
-          Accept
-        </button>
-      </form>
+      <h1 className="title">Auction your NFT</h1><div>
+          {
+    				!state.user
+    				? (
+              <h3>Not Connected</h3>
+    				)
+    				: (
+              <form className="create-form">
+                <h3 className="tshadow">Contract Address</h3>
+                <input 
+                  className="zinput"
+                  type="string"
+                  onChange={e => {
+                    setContractAddress(e.target.value)
+                  }}
+                  
+                />
+                <h3 className="tshadow">Token Id</h3>
+                <input 
+                  className="zinput"
+                  type="string"
+                  onChange={e => {
+                    setTokenId(e.target.value);
+                  }}
+                />
+                <button
+                  className="create-btn"
+                  onClick={createClick}
+                >
+                  Accept
+                </button>
+
+                {
+                  !validated && <p className="form-validation">Please provide a valid Address and Token Id</p>
+                }
+
+              </form>
+    				)
+    			}
+  
+        </div>
       
     </div>
   )

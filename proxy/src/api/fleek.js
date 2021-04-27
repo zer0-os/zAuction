@@ -1,6 +1,7 @@
 const express = require('express');
 const fleek = require('@fleekhq/fleek-storage-js');
 const rateLimit = require('express-rate-limit');
+const { json } = require('express');
 
 // User receives a 429 error for being rate limited
 const limiter = rateLimit({
@@ -11,8 +12,8 @@ const limiter = rateLimit({
 const router = express.Router();
 
 const secrets = {
-  apiKey: "",
-  apiSecret: "",
+  apiKey: "+cuSvgFnS2MkpuLxQjp8Kg==",
+  apiSecret: "Q4jc2NCcIM7N56947davlJBEQ6BFBjLBHwMcK1IwKq0=",
   cashew: "50",
   key: 'test/0/2.json',
   data: {
@@ -23,7 +24,7 @@ const secrets = {
 }
 
 function checkNullCreateFields (...args) {
-  let createFields = [];
+  let createFields = ["account","tokenId","contractAddress","startTime","endTime","minBid","auctionType"];
   for(let i = 0;i < args.length; i++){
     if (args[i] == null || (!/\S/.test(args[i]))) {
       return {data: createFields[i], value:false};
@@ -31,83 +32,59 @@ function checkNullCreateFields (...args) {
   }
   return{data:null, value:true};
 }
-async function fleekGetFile(hash) {
-	return myFile = await fleek.getFileFromHash({
-		hash: hash,
-	})
-}
-async function fleekListFiles(apiKey, apiSecret) {
-  return files = await fleekStorage.listFiles({
-    apiKey: apiKey,
-    apiSecret: apiSecret,
-    getOptions: [
-      'bucket',
-      'key',
-      'hash',
-      'publicUrl'
-    ],
-  })
-}
-async function fleekDeleteFile(apiKey, apiSecret, key, bucket) {
-  const input = {
-    apiKey: apiKey,
-    apiSecret: apiSecret,
-    key: key,
-    bucket: bucket
-  };
-  return result = await fleek.deleteFile(input);
-}
-async function fleekWriteFile(apiKey, apiSecret, key, data) {
-  const input = {
-    apiKey: apiKey,
-    apiSecret: apiSecret,
-    key: key,
-    data: JSON.stringify(data)
-  };
-  return result = await fleek.upload(input);
-}
-async function fleekGetBuckets(apiKey, apiSecret) {
-  const buckets = await fleek.listBuckets({
-    apiKey: apiKey,
-    apiSecret: apiSecret,
-  })
-}
 
 let cachedData;
 let cacheTime;
 
 // Get auction endpoint
 router.get('/getAuction', limiter, async (req, res, next) => {
-  if (cacheTime && cacheTime > Date.now() - parseInt(secrets.cashew) * 1000) {
-    return res.json(cachedData);
-  }
   try {
-    await fleek.getFileFromHash({
-      hash: 'bafybeibtedlr5m36oxnzh5ylyauy6vpmchx4fbmdlbkoda3ztptkwbydty',
-    }).then((file) => {
-      // Careful, this cache is stored in memory
-      cachedData = file;
-      cacheTime = Date.now();
-      res.json(file)
+    if (req.body.key == null || (!/\S/.test(req.body.key))) {
+      return res.send({"status":"false","message":"please provide a valid key"});
     }
-    );
+	  await fleek.get({
+      apiKey: secrets.apiKey,
+      apiSecret: secrets.apiSecret,
+      key: req.body.key
+    }).then((file) => {
+      res.send(file.data);
+    });
   } catch (error) {
     next(error);
   }
 });
 
 // Create auction endpoint
-router.get('/createAuction', async (req, res, next) => {
+router.post('/createAuction', async (req, res, next) => {
+  var t = Math.floor(new Date().getTime() / 1000);
+  //console.log(t,req.body);
   try {
-    var result = checkNullCreateFields();
+    var result = checkNullCreateFields(
+      req.body.account,
+      req.body.tokenId,
+      req.body.contractAddress,
+      req.body.startTime,
+      req.body.endTime,
+      req.body.minBid,
+      req.body.auctionType
+    );
     if (result['value'] == false) {
         return res.send({"status": "false", "message": result['data'] + " not found"});
     }
+    const data = {
+      account: req.body.account,
+      tokenId: req.body.tokenId,
+      contractAddress: req.body.contractAddress,
+      startTime: req.body.startTime,
+      endTime: req.body.endTime,
+      minBid: req.body.minBid,
+      auctionType: req.body.auctionType
+    };
     await fleek.upload({
       apiKey: secrets.apiKey,
       apiSecret: secrets.apiSecret,
-      key: secrets.key,
-      data: JSON.stringify(secrets.data)
+      key: t + "-" + req.body.account,
+      data: JSON.stringify(data)
     }).then((file) => res.json(file));
   } catch (error) {
     next(error);
@@ -115,19 +92,17 @@ router.get('/createAuction', async (req, res, next) => {
 });
 
 // List auctions endpoint
-router.get('/listAuctions', async (req, res, next) => {
+router.get('/getAuctions', async (req, res, next) => {
   var t = Math.floor(new Date().getTime() / 1000);
-  console.log(t);
+  //console.log(t);
   try {
     await fleek.listFiles({
       apiKey: secrets.apiKey,
       apiSecret: secrets.apiSecret,
       getOptions: [
-        'bucket',
-        'key',
-        'publicUrl'
+        'key'
       ],
-    }).then((file) => res.json(file));
+    }).then((file) => res.send(file));
   } catch (error) {
     next(error);
   }

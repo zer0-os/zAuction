@@ -1,10 +1,10 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { Link } from 'react-router-dom';
-import './Nft.css';
+import './Auction.css';
 
-const Nft = (props) => (
-  <Link className="noLink" to={'/nftDetails/' + props.name}>
+const Auction = (props) => (
+  <Link className="noLink" to={'/auctionDetails/' + props.name}>
     <div className="nft">
       <img src={props.img} className="nft-img" alt="nft" />
       <h3 className="nft-name">{props.name}</h3>
@@ -19,4 +19,4 @@ const mapStateToProps = (state: { exReducer: { exValue: any; }; }) => ({
   exValue: state.exReducer.exValue
 })
 
-export default connect(mapStateToProps)(Nft);
+export default connect(mapStateToProps)(Auction);

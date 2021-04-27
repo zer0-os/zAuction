@@ -1,23 +1,19 @@
-import React, {createContext, useEffect, useState} from 'react';
+// contexts/User/index.jsx
 
-export const UserContext = createContext(null);
+import React from "react"
+import { reducer, initialState } from "./userReducer"
 
-export const UserContextProvider = (props: { children: React.ReactNode; }) => {
-  const [user, setUser] = useState("yams");
+export const UserContext = React.createContext({
+  state: initialState,
+  dispatch: () => null
+})
 
-  const loaded = async () => {
-    setUser("smay");
-  }
-
-  useEffect(() => {
-    loaded();
-  }, [])
+export const UserProvider = ({ children }) => {
+  const [state, dispatch] = React.useReducer(reducer, initialState)
 
   return (
-        <UserContext.Provider value={user}>
-          {props.children}
-        </UserContext.Provider>
+    <UserContext.Provider value={[ state, dispatch ]}>
+    	{ children }
+    </UserContext.Provider>
   )
 }
-
-export default UserContextProvider;

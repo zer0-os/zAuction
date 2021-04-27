@@ -1,10 +1,10 @@
 import React, { useContext, useEffect, useState } from 'react';
-import './NftView2.css';
+import './AuctionsView.css';
 import {AuctionContext} from '../../contexts/auctionContext';
-import Nft from '../Nft/Nft';
+import Auction from '../Auction/Auction';
 
 
-const NftView2 = (props) => {
+const AuctionsView = () => {
   const { bids } = useContext(AuctionContext);
   const [lbids, setLbids] = useState([]);
 
@@ -20,7 +20,7 @@ const NftView2 = (props) => {
     <div>
       <h1 className="title">Auctions</h1>
       <div className="nft-view">
-          {lbids.map(nft => <Nft account={nft.account} img={nft.img} name={nft.name} price={nft.price} key={nft.index} />)}
+          {lbids.map(nft => <Auction account={nft.account} img={nft.img} name={nft.name} price={nft.price} key={nft.index} />)}
       </div>
     </div>
   ) : (
@@ -32,4 +32,4 @@ const NftView2 = (props) => {
 
 }
 
-export default NftView2;
+export default AuctionsView;

@@ -18,5 +18,6 @@ let DB = {
     {"account":"0xaac7a85400ff19c76d40d8b9cd1e770fb58682ba","name":"Soap","price":"420.00","img":"http://placeimg.com/640/480/fashion"}
   ]
 }
+//console.log("DB!");
 
 export const AuctionContext = createContext(DB);
