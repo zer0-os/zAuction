@@ -1,7 +1,7 @@
 const express = require('express');
 const fleek = require('@fleekhq/fleek-storage-js');
 const rateLimit = require('express-rate-limit');
-const { json } = require('express');
+//const { json } = require('express');
 
 // User receives a 429 error for being rate limited
 const limiter = rateLimit({
@@ -33,19 +33,25 @@ function checkNullCreateFields (...args) {
   return{data:null, value:true};
 }
 
-let cachedData;
-let cacheTime;
+function curTimeInSec() {
+  return Math.floor(new Date().getTime() / 1000);
+}
+
+//let cachedData;
+//let cacheTime;
 
 // Get auction endpoint
 router.get('/getAuction', limiter, async (req, res, next) => {
+  var t = curTimeInSec();
   try {
-    if (req.body.key == null || (!/\S/.test(req.body.key))) {
+    console.log(t,"GET request to /getAuction from", req.ip, "with query params:",req.query)
+    if (req.query.key == null || (!/\S/.test(req.query.key))) {
       return res.send({"status":"false","message":"please provide a valid key"});
     }
 	  await fleek.get({
       apiKey: secrets.apiKey,
       apiSecret: secrets.apiSecret,
-      key: req.body.key
+      key: req.query.key
     }).then((file) => {
       res.send(file.data);
     });
@@ -56,8 +62,8 @@ router.get('/getAuction', limiter, async (req, res, next) => {
 
 // Create auction endpoint
 router.post('/createAuction', async (req, res, next) => {
-  var t = Math.floor(new Date().getTime() / 1000);
-  //console.log(t,req.body);
+  var t = curTimeInSec();
+  console.log(t,"POST request to /createAuction from", req.ip, "with body params:",req.body)
   try {
     var result = checkNullCreateFields(
       req.body.account,
@@ -83,7 +89,7 @@ router.post('/createAuction', async (req, res, next) => {
     await fleek.upload({
       apiKey: secrets.apiKey,
       apiSecret: secrets.apiSecret,
-      key: t + "-" + req.body.account,
+      key: t + req.body.account,
       data: JSON.stringify(data)
     }).then((file) => res.json(file));
   } catch (error) {
@@ -93,9 +99,9 @@ router.post('/createAuction', async (req, res, next) => {
 
 // List auctions endpoint
 router.get('/getAuctions', async (req, res, next) => {
-  var t = Math.floor(new Date().getTime() / 1000);
-  //console.log(t);
+  var t = curTimeInSec();
   try {
+    console.log(t,"GET request to /getAuctions from", req.ip)
     await fleek.listFiles({
       apiKey: secrets.apiKey,
       apiSecret: secrets.apiSecret,

@@ -45,6 +45,9 @@ import { isPropertySignature } from 'typescript';
 // fleek
 import fleek from '@fleekhq/fleek-storage-js';
 
+//spinnner css
+import "react-loader-spinner/dist/loader/css/react-spinner-loader.css";
+
 // imports
 import './App.css';
 import {UserProvider} from './contexts/userContext';

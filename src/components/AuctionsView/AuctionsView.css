@@ -1,7 +1,16 @@
-.nft-view {
+.auctions-view {
 	display:flex;
 	flex-wrap:wrap;
 	align-content:flex-start;
 	justify-content: space-around;
 	padding:0px 2em;
+	color:white;
+}
+.glow {
+	color:#a1d2ff;
+	text-shadow: 0 0 2px #a1d2ff;
+}
+.glow2 {
+	-webkit-filter: drop-shadow( 0 0 1px #a1d2ff);
+  filter: drop-shadow( 0 0 1px #a1d2ff);
 }
