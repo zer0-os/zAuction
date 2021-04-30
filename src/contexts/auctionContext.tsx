@@ -12,7 +12,7 @@ export const AuctionProvider = ({ children }) => {
   const [state, dispatch] = useReducer(auctionReducer, initialAuctionState)
 
   return (
-    <AuctionContext.Provider value={[ state, dispatch ]}>
+    <AuctionContext.Provider value={{auctionsState: state, auctionsDispatch: dispatch}}>
     	{ children }
     </AuctionContext.Provider>
   )

@@ -6,6 +6,11 @@
 	padding:0px 2em;
 	color:white;
 }
+.refresh-auctions {
+	height:2em;
+	width:2em;
+	margin:auto;
+}
 .glow {
 	color:#a1d2ff;
 	text-shadow: 0 0 2px #a1d2ff;
