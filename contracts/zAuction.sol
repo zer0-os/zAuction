@@ -20,9 +20,8 @@ contract zAuction {
     event BidAccepted(address indexed bidder, address indexed seller, uint256 amount, address nftaddress, uint256 tokenid, uint256 expireblock);
     event WethBidAccepted(address indexed bidder, address indexed seller, uint256 amount, address nftaddress, uint256 tokenid, uint256 expireblock);
 
-    constructor(address accountantaddress) {
-        accountant = zAuctionAccountant(accountantaddress);
-    }
+    constructor() {}
+    
     /// recovers sellers's signature based on buyer's proposed data and, if sale data hash matches the message hash, transfers nft and payment
     /// @param signature type encoded message signed by the seller
     /// @param seller address of who the buyer says the seller is, for confirmation of the recovered seller
@@ -36,16 +35,17 @@ contract zAuction {
         address nftaddress, 
         uint256 tokenid, 
         uint256 expireblock,
-        uint8 functionselector) external {
-        
-        require(seller == recover(toEthSignedMessageHash(keccak256(abi.encode(
-                address(this), block.chainid, price, nftaddress, tokenid, expireblock, functionselector))), signature),
+        uint8 functionselector) external 
+    {
+        bytes32 data = keccak256(abi.encode(
+            address(this), block.chainid, price, nftaddress, tokenid, expireblock, functionselector));
+        require(seller == recover(toEthSignedMessageHash(data), signature),
                  'zAuction: recovered incorrect seller');
         require(seller != msg.sender, 'zAuction: sale to self');
         require(functionselector == 1, 'zAuction: unauthorized function');
         require(price != 0, 'zAuction: zero price');
         require(expireblock > block.number, 'zAuction: sale expired');
-        require(!sigUsed[keccak256(signature)], 'zAuction: Signature already used');
+        require(!sigUsed[data], 'zAuction: Signature already used');
         
         sigUsed[keccak256(signature)] = true;
         IERC721 nftcontract = IERC721(nftaddress);
@@ -56,7 +56,7 @@ contract zAuction {
     ///@dev same as purchase, but deposits directly into the seller's ethbalance in the accountant 
     function depositAndPurchase(
         bytes memory signature, 
-        address seller, 
+        address payable seller, 
         uint256 price, 
         address nftaddress, 
         uint256 tokenid, 
@@ -70,13 +70,14 @@ contract zAuction {
         require(functionselector == 1, 'zAuction: unauthorized function');
         require(msg.value == price, 'zAuction: invalid payment');
         require(price != 0, 'zAuction: zero price');
+        require(price == msg.value, 'zAuction: invalid payment');
         require(expireblock > block.number, 'zAuction: sale expired');
         require(!sigUsed[keccak256(signature)], 'zAuction: Signature already used');
 
         sigUsed[keccak256(signature)] = true;
         IERC721 nftcontract = IERC721(nftaddress);
-        accountant.zDeposit{value: msg.value}(seller);
         nftcontract.transferFrom(seller, msg.sender, tokenid);
+        seller.transfer(msg.value);
         emit Purchased(seller, msg.sender, price, nftaddress, tokenid, expireblock);
     }
 

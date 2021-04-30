@@ -29,29 +29,24 @@ contract zAuctionAccountant {
         _;
     }
     
-    function Deposit() external payable {
+    function deposit() external payable {
         ethbalance[msg.sender] = SafeMath.add(ethbalance[msg.sender], msg.value);
         emit Deposited(msg.sender, msg.value);
     }
 
-    function Withdraw(uint256 amount) external {
+    function withdraw(uint256 amount) external {
         ethbalance[msg.sender] = SafeMath.sub(ethbalance[msg.sender], amount);
         payable(msg.sender).transfer(amount);
         emit Withdrew(msg.sender, amount);
     }
 
-    function zDeposit(address addy) external payable {
-        ethbalance[addy] = SafeMath.add(ethbalance[addy], msg.value);
-        emit zDeposited(addy, msg.value);
-    }
-
-    function Exchange(address from, address to, uint256 amount) external onlyZauction {
+    function exchange(address from, address to, uint256 amount) external onlyZauction {
         ethbalance[from] = SafeMath.sub(ethbalance[from], amount);
         ethbalance[to] = SafeMath.add(ethbalance[to], amount);
         emit zExchanged(from, to, amount);
     }
 
-    function SetZauction(address zauctionaddress) external onlyAdmin{
+    function setZauction(address zauctionaddress) external onlyAdmin{
         zauction = zauctionaddress;
         emit ZauctionSet(zauctionaddress);
     }

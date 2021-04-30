@@ -35,6 +35,7 @@
     "graphql": "^15.5.0",
     "graphql-tag": "^2.11.0",
     "lodash": "^4.17.21",
+    "openzeppelin-solidity": "^4.1.0",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
     "react-redux": "^7.2.3",
