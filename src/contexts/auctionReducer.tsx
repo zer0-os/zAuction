@@ -9,8 +9,8 @@ export const auctionReducer = (state, action) => {
       // fetch auction stuff here
       let i
       let builtAuctions= [];
-      axios.get('http://localhost:5000/api/fleek/getAuctions')
-      //const auctions = axios.get('https://zproxy.ilios.dev/api/fleek/getAuctions')
+      //axios.get('http://localhost:5000/api/fleek/getAuctions')
+      axios.get('https://zproxy.ilios.dev/api/fleek/getAuctions')
       .then(function (response) {
         //console.log(response);
         for (i=0;i<response.data.length;i++) {

@@ -24,12 +24,12 @@ const AuctionDetails = (props: { match: { params: { auctionId: any; }; }; }) => 
   }
 
   async function getAuction(auctionId) {
-    axios.get('http://localhost:5000/api/fleek/getAuction',
+    //axios.get('http://localhost:5000/api/fleek/getAuction',
+    axios.get('https://zproxy.ilios.dev/api/fleek/getAuction',
       { headers: {'Content-Type':'application/json'},
         params: {key:auctionId},
       }
     )
-      //const auctions = axios.get('https://zproxy.ilios.dev/api/fleek/getAuctions')
       .then(function (response) {
         console.log(response);
         setAuction(response.data);

@@ -12,6 +12,7 @@ const limiter = rateLimit({
 const router = express.Router();
 
 const secrets = {
+  // yeah, i know, before you ask, this is here due to a bug with dotenv
   apiKey: "+cuSvgFnS2MkpuLxQjp8Kg==",
   apiSecret: "Q4jc2NCcIM7N56947davlJBEQ6BFBjLBHwMcK1IwKq0=",
   cashew: "50",

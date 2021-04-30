@@ -1,8 +1,10 @@
 import React, { useContext, useEffect, useState } from 'react';
 import './AuctionsView.css';
-import {AuctionContext} from '../../contexts/auctionContext';
+import { AuctionContext } from '../../contexts/auctionContext';
+import { UserContext } from '../../contexts/userContext';
 import Auction from '../Auction/Auction';
 import Loader from "react-loader-spinner";
+//import { unstable_renderSubtreeIntoContainer } from 'react-dom';
 
 const AuctionsView = () => {
   const [ state, dispatch ] = useContext(AuctionContext);
@@ -11,7 +13,7 @@ const AuctionsView = () => {
   // run on component first mount
   useEffect(() => {
     updateAuctions()
-    console.log("AuctionView loaded, fetched the following auctions:",auctions)
+    console.log("AuctionsView loaded, fetched the following auctions:",auctions)
   },[]);
 
   // run on auctions update

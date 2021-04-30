@@ -212,8 +212,8 @@ const CreateView = (props) => {
 
   function createAuction() {
     console.log("Sending auction to DB")
-    axios.post('http://localhost:5000/api/fleek/createAuction', {
-    //axios.post('https://zproxy.ilios.dev/api/fleek/createAuction', {
+    //axios.post('http://localhost:5000/api/fleek/createAuction', {
+    axios.post('https://zproxy.ilios.dev/api/fleek/createAuction', {
       account: state.user,
       tokenId: tokenId,
       contractAddress: contractAddress,

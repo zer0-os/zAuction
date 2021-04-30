@@ -42,9 +42,6 @@ import { isPropertySignature } from 'typescript';
 //require('zAuction.json');
 //import { isCompositeComponent } from 'react-dom/test-utils';
 
-// fleek
-import fleek from '@fleekhq/fleek-storage-js';
-
 //spinnner css
 import "react-loader-spinner/dist/loader/css/react-spinner-loader.css";
 
@@ -82,7 +79,7 @@ import AuctionDetails from './components/AuctionDetails/AuctionDetails';
  }
  `;
 
- // web3react
+// web3react
 function getLibrary(provider: ExternalProvider | JsonRpcFetchFunc) {
   const library = new Web3Provider(provider, 'any');
   library.pollingInterval = 12000;
