@@ -1,5 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { useWeb3React } from '@web3-react/core';
+import { Animated } from "react-animated-css";
 import * as ethers from 'ethers';
 import axios from 'axios';
 
@@ -244,50 +245,54 @@ const CreateView = (props) => {
   }
   
   return (
-    <div className="create-view">
-      <h1 className="title">Auction your NFT</h1><div>
-          {
-    				!state.user
-    				? (
-              <h3>Not Connected</h3>
-    				)
-    				: (
-              <form className="create-form">
-                <h3 className="tshadow">Contract Address</h3>
-                <input 
-                  className="zinput"
-                  type="string"
-                  onChange={e => {
-                    setContractAddress(e.target.value)
-                  }}
-                  
-                />
-                <h3 className="tshadow">Token Id</h3>
-                <input 
-                  className="zinput"
-                  type="string"
-                  onChange={e => {
-                    setTokenId(e.target.value);
-                  }}
-                />
-                <button
-                  className="create-btn"
-                  onClick={createClick}
-                >
-                  Accept
-                </button>
+    <Animated animationIn="fadeIn" animationOut="fadeOut" isVisible={true}>
+      <div className="create-view">
+        <h1 className="title">Auction your NFT</h1><div>
+            {
+      				!state.user
+      				? (
+                <h3>Not Connected</h3>
+      				)
+      				: (
+                <Animated animationIn="fadeIn" animationOut="fadeOut" isVisible={true}>
+                  <form className="create-form">
+                    <h3 className="tshadow">Contract Address</h3>
+                    <input 
+                      className="zinput"
+                      type="string"
+                      onChange={e => {
+                        setContractAddress(e.target.value)
+                      }}
+                      
+                    />
+                    <h3 className="tshadow">Token Id</h3>
+                    <input 
+                      className="zinput"
+                      type="string"
+                      onChange={e => {
+                        setTokenId(e.target.value);
+                      }}
+                    />
+                    <button
+                      className="create-btn"
+                      onClick={createClick}
+                    >
+                      Accept
+                    </button>
 
-                {
-                  !validated && <p className="form-validation">Please provide a valid Address and Token Id</p>
-                }
+                    {
+                      !validated && <p className="form-validation">Please provide a valid Address and Token Id</p>
+                    }
 
-              </form>
-    				)
-    			}
+                  </form>
+                </Animated>
+      				)
+      			}
   
-        </div>
-      
-    </div>
+          </div>
+        
+      </div>
+    </Animated>
   )
 }
 export default CreateView;
