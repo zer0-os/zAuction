@@ -4,6 +4,8 @@ import { Animated } from "react-animated-css";
 import axios from 'axios';
 import './AuctionDetails.css';
 import { useWeb3React } from '@web3-react/core';
+import { erc721abi } from '../../erc721abi';
+import * as ethers from 'ethers';
 //import {AuctionContext} from '../../contexts/auctionContext';
 
 
@@ -17,11 +19,28 @@ const AuctionDetails = (props: { match: { params: { auctionId: any; }; }; }) => 
   // on component render
   useEffect(() =>{
     getAuction(auctionId);
-    processAuctions();
   }, [])
 
-  async function processAuctions() {
+  useEffect(() =>{
+    if(auction){
+      processAuction(auction);
+      console.log(auction);
+      //const {contractAddress, tokenId} = auction;
+    }
+  }, [auction])
+
+  async function processAuction(auction) {
+    console.log(auction);
+    try{
     console.log(library)
+    let contract = new ethers.Contract(auction.contractAddress, erc721abi, library);
+    console.log(erc721abi);
+    console.log(contract);
+    let uri = await contract.functions.tokenURI(auction.tokenId);
+    console.log(uri);
+    
+  }
+    catch(e){console.log(e)}
   }
 
   async function getAuction(auctionId) {

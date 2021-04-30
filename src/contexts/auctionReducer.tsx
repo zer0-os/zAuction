@@ -4,7 +4,7 @@ export const auctionReducer = (state, action) => {
   //LogLibrary();
   switch (action.type) {
     case "UPDATE_AUCTIONS":
-      //console.log("UPDATE_AUCTIONS")
+      console.log("UPDATE_AUCTIONS")
 
       // fetch auction stuff here
       let i
