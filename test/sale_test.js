@@ -162,7 +162,7 @@ contract('zSale', function (accounts) {
       await expectRevert(this.ecdsa.purchase(signature, this.auctionid, accounts[1], this.price, this.nftc.address, this.tokenid, this.expireblock, {from: accounts[0]}), "zSale: zero price");
     });
   });
-/*
+
   context('recover with invalid signature', function () {
     it('with short signature', async function () {
       await expectRevert(this.ecdsa.recover(TEST_MESSAGE, '0x1234'), 'ECDSA: invalid signature length');
@@ -288,7 +288,5 @@ contract('zSale', function (accounts) {
     it('should prefix hashes correctly', async function () {
       expect(await this.ecdsa.toEthSignedMessageHash(TEST_MESSAGE)).to.equal(toEthSignedMessageHash(TEST_MESSAGE));
     });
-  });
-*/
-  
+  }); 
 });

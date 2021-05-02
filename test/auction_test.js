@@ -209,7 +209,7 @@ contract('ECDSA', function (accounts) {
       await expectRevert(this.ecdsa.acceptBid(signature, this.auctionid, accounts[0], web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.startblock, this.startblock, {from: accounts[1]}), "zAuction: auction expired");
     });
   });
-  /*
+
   context('recover with invalid signature', function () {
     it('with short signature', async function () {
       await expectRevert(this.ecdsa.recover(TEST_MESSAGE, '0x1234'), 'ECDSA: invalid signature length');
@@ -336,6 +336,4 @@ contract('ECDSA', function (accounts) {
       expect(await this.ecdsa.toEthSignedMessageHash(TEST_MESSAGE)).to.equal(toEthSignedMessageHash(TEST_MESSAGE));
     });
   });
-*/
-  
 });
