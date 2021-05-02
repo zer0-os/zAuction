@@ -1,24 +1,11 @@
-const { accounts, contract } = require('@openzeppelin/test-environment');
-
-const {
-  BN,           // Big Number support
-  constants,    // Common constants, like the zero address and largest integers
-  expectEvent,  // Assertions for emitted events
-  expectRevert, // Assertions for transactions that should fail
-} = require('@openzeppelin/test-helpers');
-
-const erc20 = contract.fromArtifacts('ERC20');
-const nftcontract = contract.fromArtifacts('ERC721');
-
 const { expectRevert } = require('@openzeppelin/test-helpers');
 const { toEthSignedMessageHash, fixSignature } = require('./helpers/sign');
 
 const { expect } = require('chai');
 
 const zAuction = artifacts.require('zAuction');
-const zaccountant = artifacts.require('zAuctionAccountant');
-//const nftcontract = artifacts.require('ERC721TestToken');
-//const erc20 = artifacts.require('IERC20')
+const nftcontract = artifacts.require('ERC721TestToken');
+const erc20 = artifacts.require('ERC20TestToken')
 
 const TEST_MESSAGE = web3.utils.sha3('OpenZeppelin');
 const WRONG_MESSAGE = web3.utils.sha3('Nope');
@@ -41,13 +28,188 @@ contract('ECDSA', function (accounts) {
       "name": "My NFT 0"
     });
     await this.nftc.mint(accounts[1]);
-    this.weth = await erc20.new();
+    this.weth = await erc20.new("weth", "WETH");
+    await this.weth.mint(accounts[0], web3.utils.toWei('10'));
+    await this.weth.mint(accounts[1], web3.utils.toWei('24'));
   })
   beforeEach(async function () {
-    this.ecdsa = await zAuction.new();
-    await this.nftc.approve(this.ecdsa.address, web3.utils.toWei('99'), {from: accounts[1]});
+    this.ecdsa = await zAuction.new(this.weth.address);
+    await this.weth.approve(this.ecdsa.address, web3.utils.toWei('999'), {from: accounts[1]});
+    await this.weth.approve(this.ecdsa.address, web3.utils.toWei('999'), {from: accounts[0]});
   });
 
+  context('with correctly encoded bid data', function () {
+    it('should successfully accept bid, transfer nft, and exchange eth', async function () {
+      await this.nftc.approve(this.ecdsa.address, this.tokenid, {from: accounts[1]});
+      let params = web3.eth.abi.encodeParameters(['uint256','address','uint8','uint256', 'address', 'uint256', 'uint256','uint256','uint256'],
+      [this.auctionid, this.ecdsa.address, 1, web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.startblock, this.expireblock]);      
+      const TEST_BID = web3.utils.keccak256(params);
+      // Create the signature
+      const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
+      await this.ecdsa.acceptBid(signature, this.auctionid, accounts[0], web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.startblock, this.expireblock, {from: accounts[1]});
+      expect(await this.nftc.ownerOf(this.tokenid)).to.equal(accounts[0]);
+      expect((await this.weth.balanceOf(accounts[1])).toString()).to.equal(web3.utils.toWei('25'));
+      expect((await this.weth.balanceOf(accounts[0])).toString()).to.equal(web3.utils.toWei('9'));
+    });
+  });
+  context('with repeated data', function () {
+    it('should revert with message', async function () {
+      this.tokenid += 1;
+      await this.nftc.mint(accounts[1]);
+      await this.nftc.approve(this.ecdsa.address, this.tokenid, {from: accounts[1]});
+      let params = web3.eth.abi.encodeParameters(['uint256','address','uint8','uint256', 'address', 'uint256', 'uint256','uint256','uint256'],
+      [this.auctionid, this.ecdsa.address, 1, web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.startblock, this.expireblock]);      
+      const TEST_BID = web3.utils.keccak256(params);
+      // Create the signature
+      const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
+      await this.ecdsa.acceptBid(signature, this.auctionid, accounts[0], web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.startblock, this.expireblock, {from: accounts[1]});
+      await expectRevert(this.ecdsa.acceptBid(signature, this.auctionid, accounts[0], web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.startblock, this.expireblock, {from: accounts[1]}), 'zAuction: data already consumed');
+    });
+  });
+  context('with accepting own bid', function () {
+    it('should revert with message', async function () {
+      this.tokenid += 2;
+      await this.nftc.mint(accounts[1]);
+      await this.nftc.approve(this.ecdsa.address, this.tokenid, {from: accounts[1]});
+      let params = web3.eth.abi.encodeParameters(['uint256','address','uint8','uint256', 'address', 'uint256', 'uint256','uint256','uint256'],
+      [this.auctionid, this.ecdsa.address, 1, web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.startblock, this.expireblock]);      
+      const TEST_BID = web3.utils.keccak256(params);
+      // Create the signature
+      const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[1]));
+      await expectRevert(this.ecdsa.acceptBid(signature, this.auctionid, accounts[1], web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.startblock, this.expireblock, {from: accounts[1]}), 'zAuction: sale to self');
+    });
+  });
+  context('with invalid auctionid', function () {
+    it('should revert with incorrect bidder', async function () {
+      this.tokenid += 3;
+      await this.nftc.mint(accounts[1]);
+      await this.nftc.approve(this.ecdsa.address, this.tokenid, {from: accounts[1]});
+      let params = web3.eth.abi.encodeParameters(['uint256','address','uint8','uint256', 'address', 'uint256', 'uint256','uint256','uint256'],
+      [this.auctionid, this.ecdsa.address, 1, web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.startblock, this.expireblock]);      
+      const TEST_BID = web3.utils.keccak256(params);
+      // Create the signature
+      const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
+      await expectRevert(this.ecdsa.acceptBid(signature, 99, accounts[0], web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.startblock, this.expireblock, {from: accounts[1]}), 'zAuction: recovered incorrect bidder');
+    });
+  });
+  context('with invalid bidder', function () {
+    it('should revert with incorrect bidder', async function () {
+      this.tokenid += 4;
+      await this.nftc.mint(accounts[1]);
+      await this.nftc.approve(this.ecdsa.address, this.tokenid, {from: accounts[1]});
+      let params = web3.eth.abi.encodeParameters(['uint256','address','uint8','uint256', 'address', 'uint256', 'uint256','uint256','uint256'],
+      [this.auctionid, this.ecdsa.address, 1, web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.startblock, this.expireblock]);      
+      const TEST_BID = web3.utils.keccak256(params);
+      // Create the signature
+      const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
+      await expectRevert(this.ecdsa.acceptBid(signature, this.auctionid, accounts[2], web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.startblock, this.expireblock, {from: accounts[1]}), 'zAuction: recovered incorrect bidder');
+    });
+  });
+  context('with invalid bid', function () {
+    it('should revert with incorrect bidder', async function () {
+      this.tokenid += 5;
+      await this.nftc.mint(accounts[1]);
+      await this.nftc.approve(this.ecdsa.address, this.tokenid, {from: accounts[1]});
+      let params = web3.eth.abi.encodeParameters(['uint256','address','uint8','uint256', 'address', 'uint256', 'uint256','uint256','uint256'],
+      [this.auctionid, this.ecdsa.address, 1, web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.startblock, this.expireblock]);      
+      const TEST_BID = web3.utils.keccak256(params);
+      // Create the signature
+      const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
+      await expectRevert(this.ecdsa.acceptBid(signature, this.auctionid, accounts[0], web3.utils.toWei('0.1'), this.nftc.address, this.tokenid, this.minbid, this.startblock, this.expireblock, {from: accounts[1]}), 'zAuction: recovered incorrect bidder');
+    });
+  });
+  context('with invalid nftcontract address', function () {
+    it('should revert with incorrect bidder', async function () {
+      this.tokenid += 6;
+      await this.nftc.mint(accounts[1]);
+      await this.nftc.approve(this.ecdsa.address, this.tokenid, {from: accounts[1]});
+      let params = web3.eth.abi.encodeParameters(['uint256','address','uint8','uint256', 'address', 'uint256', 'uint256','uint256','uint256'],
+      [this.auctionid, this.ecdsa.address, 1, web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.startblock, this.expireblock]);      
+      const TEST_BID = web3.utils.keccak256(params);
+      // Create the signature
+      const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
+      await expectRevert(this.ecdsa.acceptBid(signature, this.auctionid, accounts[0], web3.utils.toWei('1'), accounts[2], this.tokenid, this.minbid, this.startblock, this.expireblock, {from: accounts[1]}), 'zAuction: recovered incorrect bidder');
+    });
+  });
+  context('with invalid tokenid', function () {
+    it('should revert with incorrect bidder', async function () {
+      this.tokenid += 7;
+      await this.nftc.mint(accounts[1]);
+      await this.nftc.approve(this.ecdsa.address, this.tokenid, {from: accounts[1]});
+      let params = web3.eth.abi.encodeParameters(['uint256','address','uint8','uint256', 'address', 'uint256', 'uint256','uint256','uint256'],
+      [this.auctionid, this.ecdsa.address, 1, web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.startblock, this.expireblock]);      
+      const TEST_BID = web3.utils.keccak256(params);
+      // Create the signature
+      const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
+      await expectRevert(this.ecdsa.acceptBid(signature, this.auctionid, accounts[0], web3.utils.toWei('1'), this.nftc.address, 99, this.minbid, this.startblock, this.expireblock, {from: accounts[1]}), 'zAuction: recovered incorrect bidder');
+    });
+  });
+  context('with invalid minbid', function () {
+    it('should revert with incorrect bidder', async function () {
+      this.tokenid += 8;
+      await this.nftc.mint(accounts[1]);
+      await this.nftc.approve(this.ecdsa.address, this.tokenid, {from: accounts[1]});
+      let params = web3.eth.abi.encodeParameters(['uint256','address','uint8','uint256', 'address', 'uint256', 'uint256','uint256','uint256'],
+      [this.auctionid, this.ecdsa.address, 1, web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.startblock, this.expireblock]);      
+      const TEST_BID = web3.utils.keccak256(params);
+      // Create the signature
+      const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
+      await expectRevert(this.ecdsa.acceptBid(signature, this.auctionid, accounts[0], web3.utils.toWei('1'), this.nftc.address, this.tokenid, web3.utils.toWei('0.1'), this.startblock, this.expireblock, {from: accounts[1]}), 'zAuction: recovered incorrect bidder');
+    });
+  });
+  context('with invalid start block', function () {
+    it('should revert with incorrect bidder', async function () {
+      this.tokenid += 8;
+      await this.nftc.mint(accounts[1]);
+      await this.nftc.approve(this.ecdsa.address, this.tokenid, {from: accounts[1]});
+      let params = web3.eth.abi.encodeParameters(['uint256','address','uint8','uint256', 'address', 'uint256', 'uint256','uint256','uint256'],
+      [this.auctionid, this.ecdsa.address, 1, web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.startblock, this.expireblock]);      
+      const TEST_BID = web3.utils.keccak256(params);
+      // Create the signature
+      const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
+      await expectRevert(this.ecdsa.acceptBid(signature, this.auctionid, accounts[0], web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, 123, this.expireblock, {from: accounts[1]}), 'zAuction: recovered incorrect bidder');
+    });
+  });
+  context('with invalid expire block', function () {
+    it('should revert with incorrect bidder', async function () {
+      this.tokenid += 8;
+      await this.nftc.mint(accounts[1]);
+      await this.nftc.approve(this.ecdsa.address, this.tokenid, {from: accounts[1]});
+      let params = web3.eth.abi.encodeParameters(['uint256','address','uint8','uint256', 'address', 'uint256', 'uint256','uint256','uint256'],
+      [this.auctionid, this.ecdsa.address, 1, web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.startblock, this.expireblock]);      
+      const TEST_BID = web3.utils.keccak256(params);
+      // Create the signature
+      const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
+      await expectRevert(this.ecdsa.acceptBid(signature, this.auctionid, accounts[0], web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.startblock, 8888888888888888, {from: accounts[1]}), 'zAuction: recovered incorrect bidder');
+    });
+  });
+  context('before startblock', function () {
+    it('should revert with message', async function () {
+      this.tokenid += 11;
+      await this.nftc.mint(accounts[1]);
+      await this.nftc.approve(this.ecdsa.address, this.tokenid, {from: accounts[1]});
+      let params = web3.eth.abi.encodeParameters(['uint256','address','uint8','uint256', 'address', 'uint256', 'uint256','uint256','uint256'],
+      [this.auctionid, this.ecdsa.address, 1, web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.expireblock, this.expireblock]);      
+      const TEST_BID = web3.utils.keccak256(params);
+      // Create the signature
+      const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
+      await expectRevert(this.ecdsa.acceptBid(signature, this.auctionid, accounts[0], web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.expireblock, this.expireblock, {from: accounts[1]}), "zAuction: auction hasnt started");
+    });
+  });
+  context('after expireblock', function () {
+    it('should revert with message', async function () {
+      this.tokenid += 12;
+      await this.nftc.mint(accounts[1]);
+      await this.nftc.approve(this.ecdsa.address, this.tokenid, {from: accounts[1]});
+      let params = web3.eth.abi.encodeParameters(['uint256','address','uint8','uint256', 'address', 'uint256', 'uint256','uint256','uint256'],
+      [this.auctionid, this.ecdsa.address, 1, web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.startblock, this.startblock]);      
+      const TEST_BID = web3.utils.keccak256(params);
+      // Create the signature
+      const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
+      await expectRevert(this.ecdsa.acceptBid(signature, this.auctionid, accounts[0], web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.startblock, this.startblock, {from: accounts[1]}), "zAuction: auction expired");
+    });
+  });
+  /*
   context('recover with invalid signature', function () {
     it('with short signature', async function () {
       await expectRevert(this.ecdsa.recover(TEST_MESSAGE, '0x1234'), 'ECDSA: invalid signature length');
@@ -174,18 +336,6 @@ contract('ECDSA', function (accounts) {
       expect(await this.ecdsa.toEthSignedMessageHash(TEST_MESSAGE)).to.equal(toEthSignedMessageHash(TEST_MESSAGE));
     });
   });
-
-  context('with correctly encoded bid data', function () {
-    it('should successfully accept bid, transfer nft, and exchange eth', async function () {
-      await this.nftc.approve(this.ecdsa.address, tokenid, {from: accounts[1]});
-      let params = web3.eth.abi.encodeParameters(['uint256','address', 'uint8', 'uint256', 'address', 'uint256', 'uint256','uint256','uint256'],
-      [this.auctionid, this.ecdsa.address, 1, web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.startblock, this.expireblock]);      
-      const TEST_BID = web3.utils.keccak256(params);
-      // Create the signature
-      const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
-      await this.ecdsa.acceptBid(signature, auctionid, accounts[0], web3.utils.toWei('1'), this.nftc.address, tokenid, 999999999999999, functionselector, {from: accounts[1]});
-      expect(await this.nftc.ownerOf(tokenid)).to.equal(accounts[0]);
-      //expect((await this.accountant.ethbalance(accounts[1])).toString()).to.equal(web3.utils.toWei('1'));
-    });
-  });
+*/
+  
 });

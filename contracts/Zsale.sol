@@ -32,15 +32,15 @@ contract Zsale {
         uint256 tokenid, 
         uint256 expireblock) external 
     {
-        require(seller != msg.sender, "zAuction: sale to self");
-        require(price != 0, "zAuction: zero price");
-        require(expireblock > block.number, "zAuction: sale expired");
+        require(seller != msg.sender, "zSale: sale to self");
+        require(price != 0, "zSale: zero price");
+        require(expireblock > block.number, "zSale: sale expired");
         
         bytes32 data = keccak256(abi.encode(
             auctionid, address(this), block.chainid, price, nftaddress, tokenid, expireblock));
-        require(!consumed[data], 'zAuction: Signature already used');
+        require(!consumed[data], 'zSale: data already consumed');
         require(seller == recover(toEthSignedMessageHash(data), signature),
-                 'zAuction: recovered incorrect seller');
+                 'zSale: recovered incorrect seller');
         
         consumed[data] = true;
         IERC721 nftcontract = IERC721(nftaddress);

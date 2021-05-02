@@ -44,22 +44,23 @@ contract Zauction {
         uint256 startblock,
         uint256 expireblock) external 
     {    
-        require(startblock <= block.number, "zAuction: sale hasnt started");
+        require(startblock <= block.number, "zAuction: auction hasnt started");
+        require(expireblock > block.number, "zAuction: auction expired");
         require(minbid <= bid, "zAuction: cant accept bid below min");
-        require(bid != 0, 'zAuction: zero bid'); ///side effect: minbid can't be 0 either
-        require(bidder != msg.sender, 'zAuction: sale to self');
-        require(expireblock > block.number, 'zAuction: bid expired');
-        bytes32 data = keccak256(abi.encode(
-            auctionid, address(this), block.chainid, bid, nftaddress, tokenid, expireblock));
-        require(bidder == recover(toEthSignedMessageHash(data), signature),
-            'zAuction: recovered incorrect bidder');
-        require(!consumed[data], 'zAuction: Signature already used');
+        require(bid != 0, "zAuction: zero bid"); ///side effect: minbid can't be 0 either
+        require(bidder != msg.sender, "zAuction: sale to self");
         
-        consumed[data] = true;
+        bytes32 data = keccak256(abi.encode(
+            auctionid, address(this), block.chainid, bid, address(nftaddress), tokenid, minbid, startblock, expireblock));
+        require(bidder == recover(toEthSignedMessageHash(data), signature),
+            "zAuction: recovered incorrect bidder");
+        require(!consumed[data], "zAuction: data already consumed");
+        
         IERC721 nftcontract = IERC721(nftaddress);
+        consumed[data] = true;
         weth.transferFrom(bidder, msg.sender, bid);
         nftcontract.transferFrom(msg.sender, bidder, tokenid);
-        emit BidAccepted(auctionid, bidder, msg.sender, bid, nftaddress, tokenid, expireblock);
+        emit BidAccepted(auctionid, bidder, msg.sender, bid, address(nftcontract), tokenid, expireblock);
     }
     
     function recover(bytes32 hash, bytes memory signature) public pure returns (address) {
