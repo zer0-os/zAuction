@@ -110,7 +110,7 @@ contract ERC721TestToken is Context, AccessControlEnumerable, ERC721Enumerable, 
     /**
      * @dev See {IERC165-supportsInterface}.
      */
-    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721, ERC721Enumerable) returns (bool) {
+    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721, ERC721Enumerable, AccessControlEnumerable) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 }

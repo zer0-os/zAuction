@@ -1,11 +1,13 @@
-const zAuction = artifacts.require("zAuction");
-const zAuctionAccountant = artifacts.require("zAuctionAccountant");
-const token = artifacts.require("ERC721TestToken.sol");
+const zAuction = artifacts.require("Zauction");
+const zSale = artifacts.require("Zsale");
+const token = artifacts.require("ERC721Test");
+const weth = artifacts.require("ERC20Test");
 
 module.exports = async function(deployer) {
-  await deployer.deploy(zAuctionAccountant);
-  let zaad = await zAuctionAccountant.deployed();
-  await deployer.deploy(zAuction, zaad.address);
+  await deploy.deploy(weth);
+  let wethd = await weth.deployed();
+  await deployer.deploy(zAuction, wethd.address);
+  await deployer.deploy(zSale, wethd.address);
   await deployer.deploy(token, 'Test 721', 'TEST', {
     "id": 0,
     "description": "My NFT",
@@ -13,10 +15,9 @@ module.exports = async function(deployer) {
     "image": "https://twemoji.maxcdn.com/svg/1f40e.svg",
     "name": "My NFT 0"
   });
-
   
   let zad = await zAuction.deployed();
-  
+  let zsd = await zSale.deployed();
   let td = await token.deployed();
 
   //td.mint("0xD3a9ac5FfCFeb6100349644D90376577d966f78E");
