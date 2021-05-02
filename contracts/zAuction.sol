@@ -59,7 +59,7 @@ contract Zauction {
         IERC721 nftcontract = IERC721(nftaddress);
         consumed[data] = true;
         weth.transferFrom(bidder, msg.sender, bid);
-        nftcontract.transferFrom(msg.sender, bidder, tokenid);
+        nftcontract.safeTransferFrom(msg.sender, bidder, tokenid);
         emit BidAccepted(auctionid, bidder, msg.sender, bid, address(nftcontract), tokenid, expireblock);
     }
     

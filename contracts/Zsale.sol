@@ -44,7 +44,7 @@ contract Zsale {
         
         consumed[data] = true;
         IERC721 nftcontract = IERC721(nftaddress);
-        nftcontract.transferFrom(seller, msg.sender, tokenid);
+        nftcontract.safeTransferFrom(seller, msg.sender, tokenid);
         weth.transferFrom(msg.sender, seller, price);
 
         emit Purchased(seller, msg.sender, price, nftaddress, tokenid, expireblock);

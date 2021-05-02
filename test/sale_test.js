@@ -10,7 +10,7 @@ const erc20 = artifacts.require('ERC20TestToken')
 const TEST_MESSAGE = web3.utils.sha3('OpenZeppelin');
 const WRONG_MESSAGE = web3.utils.sha3('Nope');
 
-contract('zSale', function (accounts) {
+contract('Zsale', function (accounts) {
   const [ other ] = accounts;
   console.log(other);
   before(async function (){
@@ -114,11 +114,11 @@ contract('zSale', function (accounts) {
   context('with expired sale', function () {
     it('should revert with message', async function () {
       let params = web3.eth.abi.encodeParameters(['uint256','address','uint8','uint256', 'address', 'uint256','uint256'],
-      [this.auctionid, this.ecdsa.address, 1, this.price, this.nftc.address, this.tokenid, 123]);      
+      [this.auctionid, this.ecdsa.address, 1, this.price, this.nftc.address, this.tokenid, 0]);      
       const TEST_SALE = web3.utils.keccak256(params);
       // Create the signature
       const signature = fixSignature(await web3.eth.sign(TEST_SALE, accounts[1]));
-      await expectRevert(this.ecdsa.purchase(signature, this.tokenid, accounts[1], this.price, this.nftc.address, this.tokenid, 123, {from: accounts[0]}), 'zSale: sale expired')
+      await expectRevert(this.ecdsa.purchase(signature, this.tokenid, accounts[1], this.price, this.nftc.address, this.tokenid, 0, {from: accounts[0]}), 'zSale: sale expired')
     });
   });
   context('with signature already used', function () {

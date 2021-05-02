@@ -10,7 +10,7 @@ const erc20 = artifacts.require('ERC20TestToken')
 const TEST_MESSAGE = web3.utils.sha3('OpenZeppelin');
 const WRONG_MESSAGE = web3.utils.sha3('Nope');
 
-contract('ECDSA', function (accounts) {
+contract('Zauction', function (accounts) {
   const [ other ] = accounts;
   console.log(other);
   before(async function (){
@@ -167,7 +167,7 @@ contract('ECDSA', function (accounts) {
       const TEST_BID = web3.utils.keccak256(params);
       // Create the signature
       const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
-      await expectRevert(this.ecdsa.acceptBid(signature, this.auctionid, accounts[0], web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, 123, this.expireblock, {from: accounts[1]}), 'zAuction: recovered incorrect bidder');
+      await expectRevert(this.ecdsa.acceptBid(signature, this.auctionid, accounts[0], web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, 0, this.expireblock, {from: accounts[1]}), 'zAuction: recovered incorrect bidder');
     });
   });
   context('with invalid expire block', function () {
