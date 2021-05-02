@@ -3,7 +3,7 @@ const { toEthSignedMessageHash, fixSignature } = require('./helpers/sign');
 
 const { expect } = require('chai');
 
-const zAuction = artifacts.require('zSale');
+const zAuction = artifacts.require('Zsale');
 const nftcontract = artifacts.require('ERC721TestToken');
 const erc20 = artifacts.require('ERC20TestToken')
 

@@ -3,8 +3,9 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/erc721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+
 contract Zsale {
     using ECDSA for bytes32;
 
@@ -25,7 +26,7 @@ contract Zsale {
     /// @param tokenid token id we are transferring
     function purchase(
         bytes memory signature,
-        uint256 auctionid, 
+        uint256 saleid, 
         address seller, 
         uint256 price, 
         address nftaddress, 
@@ -37,7 +38,7 @@ contract Zsale {
         require(expireblock > block.number, "zSale: sale expired");
         
         bytes32 data = keccak256(abi.encode(
-            auctionid, address(this), block.chainid, price, nftaddress, tokenid, expireblock));
+            saleid, address(this), block.chainid, price, nftaddress, tokenid, expireblock));
         require(!consumed[data], 'zSale: data already consumed');
         require(seller == recover(toEthSignedMessageHash(data), signature),
                  'zSale: recovered incorrect seller');
