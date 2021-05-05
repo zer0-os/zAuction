@@ -209,6 +209,20 @@ contract('Zauction', function (accounts) {
       await expectRevert(this.ecdsa.acceptBid(signature, this.auctionid, accounts[0], web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.startblock, this.startblock, {from: accounts[1]}), "zAuction: auction expired");
     });
   });
+  context('with cancelled bid', function () {
+    it('should revert with message', async function () {
+      this.tokenid += 13;
+      await this.nftc.mint(accounts[1]);
+      await this.nftc.approve(this.ecdsa.address, this.tokenid, {from: accounts[1]});
+      let params = web3.eth.abi.encodeParameters(['uint256','address','uint8','uint256', 'address', 'uint256', 'uint256','uint256','uint256'],
+      [this.auctionid, this.ecdsa.address, 1, web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.startblock, this.expireblock]);      
+      const TEST_BID = web3.utils.keccak256(params);
+      // Create the signature
+      const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
+      await this.ecdsa.cancelBids(this.auctionid, {from: accounts[0]});
+      await expectRevert(this.ecdsa.acceptBid(signature, this.auctionid, accounts[0], web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.startblock, this.expireblock, {from: accounts[1]}), 'zAuction: bid cancelled');
+    });
+  });
 
   context('recover with invalid signature', function () {
     it('with short signature', async function () {

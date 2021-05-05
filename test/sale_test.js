@@ -148,10 +148,9 @@ contract('Zsale', function (accounts) {
       await expectRevert(this.ecdsa.purchase(signature, this.auctionid, accounts[1], this.price, this.nftc.address, this.tokenid, this.expireblock, {from: accounts[1]}), 'zSale: sale to self');
     });
   });
-  context('with zero price', function () {
+  context('with cancelled sale', function () {
     it('should revert with message', async function () {
       this.tokenid += 3;
-      this.price = 0;
       await this.nftc.mint(accounts[1]);
       await this.nftc.approve(this.ecdsa.address, this.tokenid, {from: accounts[1]});
       let params = web3.eth.abi.encodeParameters(['uint256','address','uint8','uint256', 'address', 'uint256','uint256'],
@@ -159,10 +158,10 @@ contract('Zsale', function (accounts) {
       const TEST_SALE = web3.utils.keccak256(params);
       // Create the signature
       const signature = fixSignature(await web3.eth.sign(TEST_SALE, accounts[1]));
-      await expectRevert(this.ecdsa.purchase(signature, this.auctionid, accounts[1], this.price, this.nftc.address, this.tokenid, this.expireblock, {from: accounts[0]}), "zSale: zero price");
+      await this.ecdsa.cancelSale(this.auctionid, this.nftc.address, this.tokenid, {from: accounts[1]});
+      await expectRevert(this.ecdsa.purchase(signature, this.auctionid, accounts[1], this.price, this.nftc.address, this.tokenid, this.expireblock, {from: accounts[0]}),"zSale: sale cancelled");
     });
   });
-
   context('recover with invalid signature', function () {
     it('with short signature', async function () {
       await expectRevert(this.ecdsa.recover(TEST_MESSAGE, '0x1234'), 'ECDSA: invalid signature length');

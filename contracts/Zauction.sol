@@ -3,7 +3,7 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 contract Zauction {
@@ -11,7 +11,9 @@ contract Zauction {
 
     IERC20 weth;
     mapping(bytes32 => bool) public consumed;
-
+    mapping(address => mapping(uint256 => bool)) bidscancelled;
+    
+    event Cancelled(address indexed bidder, uint256 indexed auctionid);
     event BidAccepted(
         uint256 auctionid, 
         address indexed bidder, 
@@ -47,22 +49,28 @@ contract Zauction {
         require(startblock <= block.number, "zAuction: auction hasnt started");
         require(expireblock > block.number, "zAuction: auction expired");
         require(minbid <= bid, "zAuction: cant accept bid below min");
-        require(bid != 0, "zAuction: zero bid"); ///side effect: minbid can't be 0 either
         require(bidder != msg.sender, "zAuction: sale to self");
         
         bytes32 data = keccak256(abi.encode(
-            auctionid, address(this), block.chainid, bid, address(nftaddress), tokenid, minbid, startblock, expireblock));
+            auctionid, address(this), block.chainid, bid, nftaddress, tokenid, minbid, startblock, expireblock));
         require(bidder == recover(toEthSignedMessageHash(data), signature),
             "zAuction: recovered incorrect bidder");
         require(!consumed[data], "zAuction: data already consumed");
-        
+        require(!bidscancelled[bidder][auctionid], "zAuction: bid cancelled");
+
         IERC721 nftcontract = IERC721(nftaddress);
         consumed[data] = true;
-        weth.transferFrom(bidder, msg.sender, bid);
+        SafeERC20.safeTransferFrom(weth, bidder, msg.sender, bid);
         nftcontract.safeTransferFrom(msg.sender, bidder, tokenid);
         emit BidAccepted(auctionid, bidder, msg.sender, bid, address(nftcontract), tokenid, expireblock);
     }
-    
+
+    function cancelBids(uint256 auctionid) external {
+        bidscancelled[msg.sender][auctionid] = true;
+        emit Cancelled(msg.sender, auctionid);
+    } 
+
+
     function recover(bytes32 hash, bytes memory signature) public pure returns (address) {
         return hash.recover(signature);
     }
