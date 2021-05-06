@@ -219,8 +219,8 @@ contract('Zauction', function (accounts) {
       const TEST_BID = web3.utils.keccak256(params);
       // Create the signature
       const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
-      await this.ecdsa.cancelBids(this.auctionid, {from: accounts[0]});
-      await expectRevert(this.ecdsa.acceptBid(signature, this.auctionid, accounts[0], web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.startblock, this.expireblock, {from: accounts[1]}), 'zAuction: bid cancelled');
+      await this.ecdsa.cancelBidsUnderPrice(this.auctionid, web3.utils.toWei('10'), {from: accounts[0]});
+      await expectRevert(this.ecdsa.acceptBid(signature, this.auctionid, accounts[0], web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.startblock, this.expireblock, {from: accounts[1]}), 'zAuction: below cancel price');
     });
   });
 

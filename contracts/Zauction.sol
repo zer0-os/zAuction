@@ -11,7 +11,7 @@ contract Zauction {
 
     IERC20 weth;
     mapping(bytes32 => bool) public consumed;
-    mapping(address => mapping(uint256 => bool)) bidscancelled;
+    mapping(address => mapping(uint256 => uint256)) cancelprice;
     
     event Cancelled(address indexed bidder, uint256 indexed auctionid);
     event BidAccepted(
@@ -50,13 +50,13 @@ contract Zauction {
         require(expireblock > block.number, "zAuction: auction expired");
         require(minbid <= bid, "zAuction: cant accept bid below min");
         require(bidder != msg.sender, "zAuction: sale to self");
-        
+        require(bid > cancelprice[bidder][auctionid], "zAuction: below cancel price");
+
         bytes32 data = keccak256(abi.encode(
             auctionid, address(this), block.chainid, bid, nftaddress, tokenid, minbid, startblock, expireblock));
         require(bidder == recover(toEthSignedMessageHash(data), signature),
             "zAuction: recovered incorrect bidder");
         require(!consumed[data], "zAuction: data already consumed");
-        require(!bidscancelled[bidder][auctionid], "zAuction: bid cancelled");
 
         IERC721 nftcontract = IERC721(nftaddress);
         consumed[data] = true;
@@ -65,10 +65,9 @@ contract Zauction {
         emit BidAccepted(auctionid, bidder, msg.sender, bid, address(nftcontract), tokenid, expireblock);
     }
 
-    function cancelBids(uint256 auctionid) external {
-        bidscancelled[msg.sender][auctionid] = true;
-        emit Cancelled(msg.sender, auctionid);
-    } 
+    function cancelBidsUnderPrice(uint256  auctionid, uint256 price) external {
+        cancelprice[msg.sender][auctionid] = price;
+    }
 
 
     function recover(bytes32 hash, bytes memory signature) public pure returns (address) {
