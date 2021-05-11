@@ -10,8 +10,8 @@ contract Zsale {
     using ECDSA for bytes32;
 
     IERC20 weth;
-    mapping(uint256 => bool) public consumed; //saleid to consumed state
-    mapping(uint256 => bool) public cancelled;
+    mapping(bytes32 => bool) public cancelled;
+    mapping(uint256 => bool) public idconsumed; //saleid to consumed state
 
     event Purchased(address indexed seller, address indexed buyer, uint256 amount, address nftaddress, uint256 tokenid, uint256 expireblock);
     event Cancelled(address indexed seller, uint256 saleid);
@@ -38,16 +38,14 @@ contract Zsale {
         require(seller != msg.sender, "zSale: sale to self");
         require(expireblock > block.number, "zSale: sale expired");
         
-        
-        require(!consumed[saleid], "zSale: data already consumed");
-        require(seller == recover(toEthSignedMessageHash(
-            keccak256(abi.encode(
-            saleid, address(this), block.chainid, price, nftaddress, tokenid, expireblock))), 
-            signature),
+        bytes32 data = keccak256(abi.encode(
+            saleid, address(this), block.chainid, price, nftaddress, tokenid, expireblock));
+        require(!idconsumed[saleid], "zSale: data already consumed");
+        require(seller == recover(toEthSignedMessageHash(data), signature),
             "zSale: recovered incorrect seller");
-        require(!cancelled[saleid], "zSale: sale cancelled");
+        require(!cancelled[data], "zSale: sale cancelled");
         
-        consumed[saleid] = true;
+        idconsumed[saleid] = true;
         IERC721 nftcontract = IERC721(nftaddress);
         nftcontract.safeTransferFrom(seller, msg.sender, tokenid);
         SafeERC20.safeTransferFrom(weth, msg.sender, seller, price);
@@ -55,14 +53,17 @@ contract Zsale {
         emit Purchased(seller, msg.sender, price, nftaddress, tokenid, expireblock);
     }
 
-    function cancelSale(uint256 saleid, address nftaddress, uint256 tokenid) external {
+    function cancelSale(uint256 saleid, uint256 price, address nftaddress, uint256 tokenid, uint256 expireblock) external {
         IERC721 nftcontract = IERC721(nftaddress);
         require(nftcontract.ownerOf(tokenid) == msg.sender, "Sender isnt token owner");
-        cancelled[saleid] = true;
+        cancelled[
+            keccak256(abi.encode(
+            saleid, address(this), block.chainid, price, nftaddress, tokenid, expireblock))
+        ] = true;
 
         emit Cancelled(msg.sender, saleid);
     }
-   
+
     function recover(bytes32 hash, bytes memory signature) public pure returns (address) {
         return hash.recover(signature);
     }
