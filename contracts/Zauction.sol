@@ -21,7 +21,9 @@ contract Zauction {
         uint256 amount, 
         address nftaddress, 
         uint256 tokenid, 
-        uint256 expireblock
+        uint256 expireblock,
+        uint256 royalty,
+        address nftcreator
     );
 
     constructor(IERC20 wethcontract) {
@@ -44,7 +46,9 @@ contract Zauction {
         uint256 tokenid, 
         uint256 minbid,
         uint256 startblock,
-        uint256 expireblock) external 
+        uint256 expireblock,
+        uint256 royalty,
+        address nftcreator) external 
     {    
         require(startblock <= block.number, "zAuction: auction hasnt started");
         require(expireblock > block.number, "zAuction: auction expired");
@@ -53,16 +57,17 @@ contract Zauction {
         require(bid > cancelprice[bidder][auctionid], "zAuction: below cancel price");
 
         bytes32 data = keccak256(abi.encode(
-            auctionid, address(this), block.chainid, bid, nftaddress, tokenid, minbid, startblock, expireblock));
+            auctionid, address(this), block.chainid, bid, nftaddress, tokenid, minbid, startblock, expireblock, royalty, nftcreator));
         require(bidder == recover(toEthSignedMessageHash(data), signature),
             "zAuction: recovered incorrect bidder");
         require(!consumed[data], "zAuction: data already consumed");
 
         IERC721 nftcontract = IERC721(nftaddress);
         consumed[data] = true;
-        SafeERC20.safeTransferFrom(weth, bidder, msg.sender, bid);
+        SafeERC20.safeTransferFrom(weth, bidder, msg.sender, bid - royalty);
+        SafeERC20.safeTransferFrom(weth, bidder, nftcreator, royalty);
         nftcontract.safeTransferFrom(msg.sender, bidder, tokenid);
-        emit BidAccepted(auctionid, bidder, msg.sender, bid, address(nftcontract), tokenid, expireblock);
+        emit BidAccepted(auctionid, bidder, msg.sender, bid, address(nftcontract), tokenid, expireblock, royalty, nftcreator);
     }
 
     function cancelBidsUnderPrice(uint256  auctionid, uint256 price) external {
