@@ -30,7 +30,7 @@ const AuctionsView = () => {
   }
   
   return ( 
-    <Animated animationIn="fadeIn" animationOut="fadeOut" isVisible={true}>
+    <Animated animationIn="fadeIn" animationOut="fadeOut" isVisible={true} className="widdy">
       <h1 className="title">Auctions</h1>
     {
       user
@@ -41,13 +41,9 @@ const AuctionsView = () => {
           ? (
             <Animated animationIn="fadeIn" animationOut="fadeOut" isVisible={true}>
               <div className="auctions-view">
-                <Animated animationIn="fadeIn" animationOut="fadeOut" isVisible={true}>
-                  <ul>
-                    {auctions.map(auction => 
-                      <Auction auctionId={auction} key={auction} />
-                    )}
-                  </ul>
-                </Animated>
+                {auctions.map(auction => 
+                  <Auction auctionId={auction} key={auction} />
+                )}
               </div>
                   <Link to="/">
                     <div className="refresh-auctions">

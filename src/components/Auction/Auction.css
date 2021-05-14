@@ -1,14 +1,21 @@
-.nft {
-	color:#b155f2;
-	border-radius:0.6em;
-	border:2px solid #b155f2;
+.auction {
+	margin:auto;
+	height:190px;
+	width:190px;	
 	padding:1em;
-	font-family: 'UniviaPro-Book';
-	margin:1em;
-	background-color: rgba(0,0,0, 0.25);
-  backdrop-filter: blur(100px);
+}
+.nft {
+/* 	border-radius:0.6em;
+	color:#b155f2;
+	border:2px solid #b155f2;
 	box-shadow: 4px 6px 17px 0px rgba(0, 0, 0, 0.45),
 							0px 0px 4px #b155f2 inset;
+	background-color: rgba(0,0,0, 0.25);
+ */	
+  padding:1em;
+	font-family: 'UniviaPro-Book';
+	margin:1em;
+  backdrop-filter: blur(100px);
 	cursor:pointer;
 }
 .nft:hover {

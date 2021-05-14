@@ -1,17 +1,33 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import Geopattern from 'geopattern';
+import logo from '../../assets/imgs/logo.png';
 import './Auction.css';
 
-const Auction = (props) => (
-  <Link className="noLink" to={'/auctionDetails/' + props.auctionId}>
-    <div className="nft">
-      {/* <img src={props.img} className="nft-img" alt="nft" /> */}
-      <h3 className="nft-name">{props.auctionId}</h3>
-      <hr className="nft-sep" />
-      {/* <h4 className="nft-price">Price: {props.price}</h4> */}
-      {/* <h5 className="nft-account">Account: {props.account}</h5> */}
+const Auction = (props) => {
+  const [ img, setImg ] = useState();
+
+  // on component render
+  useEffect(() =>{
+    setImg(Geopattern.generate(props.auctionId).toDataUri())
+  }, [])
+
+  return (
+    <div className="auction">
+      <Link className="noLink auction" to={'/auctionDetails/' + props.auctionId}>
+          {
+            img
+            ? (
+              <img src={img} className="auction-img" />
+            )
+            : (
+              <img src={logo}className="auction-img" />
+            )
+          }
+      </Link>
     </div>
-  </Link>
-)
+  )
+
+}
 
 export default Auction;

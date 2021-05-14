@@ -1,9 +1,7 @@
 #header {
-	padding-top:1em;
-	padding-left:1.2em;
+	padding:1em 4em;
 	display:flex;
 	justify-content:space-between;
-	padding-bottom:1em;
 }
 .header-right {
 	display:flex;
@@ -27,4 +25,11 @@
 	height:34px;
 	width:34px;
 	padding-right:1em;
+}
+
+/* On screens that are 550px or less, lower the header padding */
+@media screen and (max-width: 550px) {
+  #header {
+		padding: 1em 1em;
+  }
 }

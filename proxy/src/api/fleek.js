@@ -34,6 +34,16 @@ function checkNullCreateFields (...args) {
   return{data:null, value:true};
 }
 
+function checkNullBidFields (...args) {
+  let bidFields = ["key","account","bidAmt","bidMsg"];
+  for(let i = 0;i < args.length; i++){
+    if (args[i] == null || (!/\S/.test(args[i]))) {
+      return {data: bidFields[i], value:false};
+    }
+  }
+  return{data:null, value:true};
+}
+
 function curTimeInSec() {
   return Math.floor(new Date().getTime() / 1000);
 }
@@ -85,7 +95,9 @@ router.post('/createAuction', async (req, res, next) => {
       startTime: req.body.startTime,
       endTime: req.body.endTime,
       minBid: req.body.minBid,
-      auctionType: req.body.auctionType
+      auctionType: req.body.auctionType,
+      currentBidder: "",
+      currentBid: 0
     };
     await fleek.upload({
       apiKey: secrets.apiKey,
@@ -93,6 +105,69 @@ router.post('/createAuction', async (req, res, next) => {
       key: t + req.body.account,
       data: JSON.stringify(data)
     }).then((file) => res.json(file));
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Bid endpoint
+router.post('/bid', async (req, res, next) => {
+  var t = curTimeInSec();
+  console.log(t,"POST request to /bid from", req.ip, "with body params:",req.body)
+  try {
+    var result = checkNullBidFields(
+      req.body.key, // the auction's name is it's fleek key
+      req.body.account, // account of the bidder
+      req.body.bidAmt,
+      req.body.bidMsg // signed msg
+    );
+    if (result['value'] == false) {
+        return res.send({"status": "false", "message": result['data'] + " not found"});
+    }
+    // pull auction from fleek
+	  await fleek.get({
+      apiKey: secrets.apiKey,
+      apiSecret: secrets.apiSecret,
+      key: req.body.key
+    }).then(async (auction) => {
+      // then parse data & add currentBidder and currentBid
+      if (auction.data) {
+        var oldAuction = JSON.parse(auction.data);
+        console.log("auction?", oldAuction.account)
+        const data = {
+          account: oldAuction.account,
+          tokenId: oldAuction.tokenId,
+          contractAddress: oldAuction.contractAddress,
+          startTime: oldAuction.startTime,
+          endTime: oldAuction.endTime,
+          minBid: oldAuction.minBid,
+          auctionType: oldAuction.auctionType,
+          currentBidder: req.body.account,
+          currentBid: req.body.bidAmt,
+          bidMsg: req.body.bidMsg
+        };
+        console.log("New data looks like this", data)
+  
+        // delete the old auction
+        await fleek.deleteFile({
+          apiKey: secrets.apiKey,
+          apiSecret: secrets.apiSecret,
+          key: req.body.key
+        }).then(async () => {
+          // and upload new auction under the same name (key)
+          await fleek.upload({
+            apiKey: secrets.apiKey,
+            apiSecret: secrets.apiSecret,
+            key: req.body.key,
+            data: JSON.stringify(data)
+          }).then((file) => res.json(file));
+        });
+      } else {
+        return res.send({"status": "false","message":"error when parsing auction bid"});
+      }
+
+    });
+
   } catch (error) {
     next(error);
   }

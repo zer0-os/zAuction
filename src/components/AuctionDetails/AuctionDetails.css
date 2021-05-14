@@ -1,7 +1,39 @@
 .details-view {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+.subtitle {
+  word-wrap: break-word;
 }
 .subtext {
 	color:#a1d2ff;
   text-shadow: 0 0 2px #a1d2ff;
   font-size:1.1em;
+  word-wrap: break-word;
+}
+.auction-img {
+  width:10em;
+  height:10em;
+  border-radius:0.6em;
+	border:2px solid white;
+	box-shadow: 4px 6px 17px 0px rgba(0, 0, 0, 0.45),
+							0px 0px 4px white inset;
+}
+.accept-btn {
+	padding:1em;
+	margin:1em 0;
+	width:70%;
+	background-color:#6306e6;
+	border-radius:28px;
+	border:none;
+	display:inline-block;
+	cursor:pointer;
+	color:#ffffff;
+	font-family:Arial;
+	font-size:17px;
+	padding:17px 28px 14px 28px;
+	text-decoration:none;
+	box-shadow: 4px 6px 12px 0px rgba(0, 0, 0, 0.35);
+	font-family: 'UniviaPro-Book';
 }
