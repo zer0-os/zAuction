@@ -37,3 +37,13 @@
 	box-shadow: 4px 6px 12px 0px rgba(0, 0, 0, 0.35);
 	font-family: 'UniviaPro-Book';
 }
+.accept-btn:focus {
+  outline:none;
+}
+.accept-btn:hover {
+	background-color:#8142d9;
+}
+.accept-btn:active {
+	position:relative;
+	top:1px;
+}

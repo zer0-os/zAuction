@@ -121,6 +121,114 @@ const AuctionDetails = (props: { match: { params: { auctionId: any; }; }; }) => 
     });
   }
 
+  async function acceptBid(e) {
+    e.preventDefault();
+
+    let contractaddress = "0x3512413A8f4d0911C7B7E5B6c4326124a55801B2"; 
+    let abi = [
+      {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "accountantaddress",
+            "type": "address"
+          }
+        ],
+        "name": "init",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "bytes",
+            "name": "signature",
+            "type": "bytes"
+          },
+          {
+            "internalType": "address",
+            "name": "bidder",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "bid",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "nftaddress",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "tokenid",
+            "type": "uint256"
+          }
+        ],
+        "name": "acceptBid",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "bytes32",
+            "name": "hash",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes",
+            "name": "signature",
+            "type": "bytes"
+          }
+        ],
+        "name": "recover",
+        "outputs": [
+          {
+            "internalType": "address",
+            "name": "",
+            "type": "address"
+          }
+        ],
+        "stateMutability": "pure",
+        "type": "function",
+        "constant": true
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "bytes32",
+            "name": "hash",
+            "type": "bytes32"
+          }
+        ],
+        "name": "toEthSignedMessageHash",
+        "outputs": [
+          {
+            "internalType": "bytes32",
+            "name": "",
+            "type": "bytes32"
+          }
+        ],
+        "stateMutability": "pure",
+        "type": "function",
+        "constant": true
+      }
+    ]
+    let contract = new ethers.Contract(contractaddress, abi, library.getSigner());
+    console.log("Contract:", contract);
+    contract.acceptBid(
+      auction.bidMsg,
+      auction.currentBidder,
+      ethers.utils.parseEther(auction.currentBid.toString()), 
+      auction.contractAddress,
+      auction.tokenId
+    );
+  }
+
   return auctionId ? (
     <Animated animationIn="fadeIn" animationOut="fadeOut" isVisible={true}>
       <h1 className="title">Auction Details</h1>
@@ -149,7 +257,7 @@ const AuctionDetails = (props: { match: { params: { auctionId: any; }; }; }) => 
                 <>
                 <button
                   className="accept-btn"
-                  onClick={(e) => {console.log("yee")}}
+                  onClick={(e) => {acceptBid(e)}}
                 >
                   Accept Bid
                 </button>
