@@ -158,7 +158,7 @@ contract('Zsale', function (accounts) {
       const TEST_SALE = web3.utils.keccak256(params);
       // Create the signature
       const signature = fixSignature(await web3.eth.sign(TEST_SALE, accounts[1]));
-      await this.ecdsa.cancelSale(this.auctionid, this.nftc.address, this.tokenid, {from: accounts[1]});
+      await this.ecdsa.cancelSale(this.auctionid, this.price, this.nftc.address, this.tokenid, this.expireblock, {from: accounts[1]});
       await expectRevert(this.ecdsa.purchase(signature, this.auctionid, accounts[1], this.price, this.nftc.address, this.tokenid, this.expireblock, {from: accounts[0]}),"zSale: sale cancelled");
     });
   });

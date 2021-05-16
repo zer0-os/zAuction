@@ -13,7 +13,7 @@ contract Zsale {
     mapping(bytes32 => bool) public cancelled;
     mapping(uint256 => bool) public idconsumed; //saleid to consumed state
 
-    event Purchased(address indexed seller, address indexed buyer, uint256 amount, address nftaddress, uint256 tokenid, uint256 expireblock, uint256 royalty, address nftcreator);
+    event Purchased(address indexed seller, address indexed buyer, uint256 amount, address nftaddress, uint256 tokenid, uint256 expireblock);
     event Cancelled(address indexed seller, uint256 saleid);
 
     constructor(IERC20 wethcontract) {
@@ -33,15 +33,13 @@ contract Zsale {
         uint256 price, 
         address nftaddress, 
         uint256 tokenid, 
-        uint256 expireblock,
-        uint256 royalty,
-        address nftcreator) external 
+        uint256 expireblock) external 
     {
         require(seller != msg.sender, "zSale: sale to self");
         require(expireblock > block.number, "zSale: sale expired");
         
         bytes32 data = keccak256(abi.encode(
-            saleid, address(this), block.chainid, price, nftaddress, tokenid, expireblock, royalty, nftcreator));
+            saleid, address(this), block.chainid, price, nftaddress, tokenid, expireblock));
         require(!idconsumed[saleid], "zSale: data already consumed");
         require(seller == recover(toEthSignedMessageHash(data), signature),
             "zSale: recovered incorrect seller");
@@ -50,9 +48,8 @@ contract Zsale {
         idconsumed[saleid] = true;
         IERC721 nftcontract = IERC721(nftaddress);
         nftcontract.safeTransferFrom(seller, msg.sender, tokenid);
-        SafeERC20.safeTransferFrom(weth, msg.sender, seller, price - royalty);
-        SafeERC20.safeTransferFrom(weth, msg.sender, nftcreator, royalty);
-        emit Purchased(seller, msg.sender, price, nftaddress, tokenid, expireblock, royalty, nftcreator);
+        SafeERC20.safeTransferFrom(weth, msg.sender, seller, price);
+        emit Purchased(seller, msg.sender, price, nftaddress, tokenid, expireblock);
     }
 
     function cancelSale(uint256 saleid, uint256 price, address nftaddress, uint256 tokenid, uint256 expireblock) external {
