@@ -10,10 +10,10 @@ contract Zauction {
     using ECDSA for bytes32;
 
     IERC20 weth;
-    mapping(uint256 => bool) public consumed;
+    mapping(address => mapping(uint256 => bool)) public consumed;
     mapping(address => mapping(uint256 => uint256)) cancelprice;
     
-    event Cancelled(address indexed bidder, uint256 indexed auctionid);
+    event Cancelled(address indexed bidder, uint256 indexed auctionid, uint256 price);
     event BidAccepted(
         uint256 auctionid, 
         address indexed bidder, 
@@ -34,7 +34,9 @@ contract Zauction {
     /// @param bid eth amount bid
     /// @param nftaddress contract address of the nft we are transferring
     /// @param tokenid token id we are transferring
-    /// @dev 'true' in the hash here is the eth/weth switch
+    /// @param minbid minimum bid allowed
+    /// @param startblock block number at which acceptBid starts working
+    /// @param expireblock block number at which acceptBid stops working
     function acceptBid(
         bytes memory signature,
         uint256 auctionid, 
@@ -50,16 +52,16 @@ contract Zauction {
         require(expireblock > block.number, "zAuction: auction expired");
         require(minbid <= bid, "zAuction: cant accept bid below min");
         require(bidder != msg.sender, "zAuction: sale to self");
-        require(bid > cancelprice[bidder][auctionid], "zAuction: below cancel price");
 
         bytes32 data = keccak256(abi.encode(
             auctionid, address(this), block.chainid, bid, nftaddress, tokenid, minbid, startblock, expireblock));
         require(bidder == recover(toEthSignedMessageHash(data), signature),
             "zAuction: recovered incorrect bidder");
-        require(!consumed[auctionid], "zAuction: data already consumed");
+        require(!consumed[bidder][auctionid], "zAuction: data already consumed");
+        require(bid > cancelprice[bidder][auctionid], "zAuction: below cancel price");
 
         IERC721 nftcontract = IERC721(nftaddress);
-        consumed[auctionid] = true;
+        consumed[bidder][auctionid] = true;
         SafeERC20.safeTransferFrom(weth, bidder, msg.sender, bid);
         nftcontract.safeTransferFrom(msg.sender, bidder, tokenid);
         emit BidAccepted(auctionid, bidder, msg.sender, bid, address(nftcontract), tokenid, expireblock);
@@ -67,6 +69,7 @@ contract Zauction {
 
     function cancelBidsUnderPrice(uint256  auctionid, uint256 price) external {
         cancelprice[msg.sender][auctionid] = price;
+        emit Cancelled(msg.sender, auctionid, price);
     }
 
 

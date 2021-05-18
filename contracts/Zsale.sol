@@ -11,7 +11,7 @@ contract Zsale {
 
     IERC20 weth;
     mapping(bytes32 => bool) public cancelled;
-    mapping(uint256 => bool) public idconsumed; //saleid to consumed state
+    mapping(address => mapping(uint256 => bool)) public consumed; //saleid to consumed state
 
     event Purchased(address indexed seller, address indexed buyer, uint256 amount, address nftaddress, uint256 tokenid, uint256 expireblock);
     event Cancelled(address indexed seller, uint256 saleid);
@@ -26,6 +26,7 @@ contract Zsale {
     /// @param price eth amount bid
     /// @param nftaddress contract address of the nft we are transferring
     /// @param tokenid token id we are transferring
+    /// @param expireblock block at which purchase is no longer allowed
     function purchase(
         bytes memory signature,
         uint256 saleid, 
@@ -40,12 +41,13 @@ contract Zsale {
         
         bytes32 data = keccak256(abi.encode(
             saleid, address(this), block.chainid, price, nftaddress, tokenid, expireblock));
-        require(!idconsumed[saleid], "zSale: data already consumed");
+        
         require(seller == recover(toEthSignedMessageHash(data), signature),
             "zSale: recovered incorrect seller");
+        require(!consumed[seller][saleid], "zSale: data already consumed");
         require(!cancelled[data], "zSale: sale cancelled");
         
-        idconsumed[saleid] = true;
+        consumed[seller][saleid] = true;
         IERC721 nftcontract = IERC721(nftaddress);
         nftcontract.safeTransferFrom(seller, msg.sender, tokenid);
         SafeERC20.safeTransferFrom(weth, msg.sender, seller, price);
