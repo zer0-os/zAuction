@@ -30,8 +30,9 @@ contract Zauction {
 
     /// recovers bidder's signature based on seller's proposed data and, if bid data hash matches the message hash, transfers nft and payment
     /// @param signature type encoded message signed by the bidder
+    /// @param auctionid unique per address auction identifier chosen by seller
     /// @param bidder address of who the seller says the bidder is, for confirmation of the recovered bidder
-    /// @param bid eth amount bid
+    /// @param bid weth amount bid
     /// @param nftaddress contract address of the nft we are transferring
     /// @param tokenid token id we are transferring
     /// @param minbid minimum bid allowed
@@ -66,7 +67,10 @@ contract Zauction {
         nftcontract.safeTransferFrom(msg.sender, bidder, tokenid);
         emit BidAccepted(auctionid, bidder, msg.sender, bid, address(nftcontract), tokenid, expireblock);
     }
-
+    
+    /// invalidates all sender's bids at and under given price
+    /// @param auctionid unique per address auction identifier chosen by seller
+    /// @param price weth amount to cancel at and under
     function cancelBidsUnderPrice(uint256  auctionid, uint256 price) external {
         cancelprice[msg.sender][auctionid] = price;
         emit Cancelled(msg.sender, auctionid, price);

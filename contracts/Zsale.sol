@@ -22,6 +22,7 @@ contract Zsale {
     
     /// recovers sellers's signature based on buyer's proposed data and, if sale data hash matches the message hash, transfers nft and payment
     /// @param signature type encoded message signed by the seller
+    /// @param saleid unique per address sale identifier chosen by seller
     /// @param seller address of who the buyer says the seller is, for confirmation of the recovered seller
     /// @param price eth amount bid
     /// @param nftaddress contract address of the nft we are transferring
@@ -54,6 +55,7 @@ contract Zsale {
         emit Purchased(seller, msg.sender, price, nftaddress, tokenid, expireblock);
     }
 
+    /// invalidates sale given all sale parameters, if sender owns token
     function cancelSale(uint256 saleid, uint256 price, address nftaddress, uint256 tokenid, uint256 expireblock) external {
         IERC721 nftcontract = IERC721(nftaddress);
         require(nftcontract.ownerOf(tokenid) == msg.sender, "Sender isnt token owner");
