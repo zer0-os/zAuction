@@ -65,8 +65,8 @@ contract ZauctionSupportingZNS{
 
         IERC721 nftcontract = IERC721(nftaddress);
         consumed[bidder][auctionid] = true;
-        SafeERC20.safeTransferFrom(weth, bidder, msg.sender, bid - registrar.domainRoyaltyAmount(tokenid));
-        SafeERC20.safeTransferFrom(weth, bidder, registrar.minterOf(tokenid), registrar.domainRoyaltyAmount(tokenid));
+        SafeERC20.safeTransferFrom(weth, bidder, msg.sender, bid - bid / 10);
+        SafeERC20.safeTransferFrom(weth, bidder, registrar.minterOf(tokenid), bid / 10);
         nftcontract.safeTransferFrom(msg.sender, bidder, tokenid);
         emit BidAccepted(auctionid, bidder, msg.sender, bid, address(nftcontract), tokenid, expireblock);
     }
