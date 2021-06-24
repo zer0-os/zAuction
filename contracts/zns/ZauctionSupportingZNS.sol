@@ -1,9 +1,15 @@
 pragma solidity ^0.8.4;
 
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "./IRegistrar.sol";
+
 contract ZauctionSupportingZNS{
     using ECDSA for bytes32;
 
     IERC20 weth;
+    IRegistrar registrar;
     mapping(address => mapping(uint256 => bool)) public consumed;
     mapping(address => mapping(uint256 => uint256)) cancelprice;
     
@@ -18,8 +24,9 @@ contract ZauctionSupportingZNS{
         uint256 expireblock
     );
 
-    constructor(IERC20 wethcontract) {
-        weth = wethcontract;
+    constructor(IERC20 wethAddress, IRegistrar registrarAddress) {
+        weth = wethAddress;
+        registrar = registrarAddress;
     }
 
     /// recovers bidder's signature based on seller's proposed data and, if bid data hash matches the message hash, transfers nft and payment
@@ -47,6 +54,7 @@ contract ZauctionSupportingZNS{
         require(expireblock > block.number, "zAuction: auction expired");
         require(minbid <= bid, "zAuction: cant accept bid below min");
         require(bidder != msg.sender, "zAuction: sale to self");
+        //require(registrar.isDomainMetadataLocked(tokenid), "zAuction: ZNS domain metadata must be locked");
 
         bytes32 data = keccak256(abi.encode(
             auctionid, address(this), block.chainid, bid, nftaddress, tokenid, minbid, startblock, expireblock));
@@ -57,7 +65,8 @@ contract ZauctionSupportingZNS{
 
         IERC721 nftcontract = IERC721(nftaddress);
         consumed[bidder][auctionid] = true;
-        SafeERC20.safeTransferFrom(weth, bidder, msg.sender, bid);
+        SafeERC20.safeTransferFrom(weth, bidder, msg.sender, bid - registrar.domainRoyaltyAmount(tokenid));
+        SafeERC20.safeTransferFrom(weth, bidder, registrar.minterOf(tokenid), registrar.domainRoyaltyAmount(tokenid));
         nftcontract.safeTransferFrom(msg.sender, bidder, tokenid);
         emit BidAccepted(auctionid, bidder, msg.sender, bid, address(nftcontract), tokenid, expireblock);
     }

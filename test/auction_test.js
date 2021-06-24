@@ -41,9 +41,7 @@ contract('Zauction', function (accounts) {
   context('with correctly encoded bid data', function () {
     it('should successfully accept bid, transfer nft, and exchange eth', async function () {
       await this.nftc.approve(this.ecdsa.address, this.tokenid, {from: accounts[1]});
-      let params = web3.eth.abi.encodeParameters(['uint256','address','uint8','uint256', 'address', 'uint256', 'uint256','uint256','uint256'],
-      [this.auctionid, this.ecdsa.address, 1, web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.startblock, this.expireblock]);      
-      const TEST_BID = web3.utils.keccak256(params);
+6
       // Create the signature
       const signature = fixSignature(await web3.eth.sign(TEST_BID, accounts[0]));
       await this.ecdsa.acceptBid(signature, this.auctionid, accounts[0], web3.utils.toWei('1'), this.nftc.address, this.tokenid, this.minbid, this.startblock, this.expireblock, {from: accounts[1]});
