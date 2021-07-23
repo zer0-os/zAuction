@@ -1,13 +1,14 @@
-const zAuction = artifacts.require("Zauction");
+const zAuction = artifacts.require("ZauctionSupportingZNS");
 const zSale = artifacts.require("Zsale");
 const token = artifacts.require("ERC721TestToken");
 const weth = artifacts.require("ERC20TestToken");
 
 module.exports = async function(deployer) {
-  await deployer.deploy(weth, "weth", "WETH");
-  let wethd = await weth.deployed();
-  await deployer.deploy(zAuction, wethd.address);
-  await deployer.deploy(zSale, wethd.address);
+  //await deployer.deploy(weth, "weth", "WETH");
+  //let wethd = await weth.deployed();
+  await deployer.deploy(zAuction, "0x2a3bff78b79a009976eea096a51a948a3dc00e34", "0xc2e9678A71e50E5AEd036e00e9c5caeb1aC5987D");
+  /*
+  await deployer.deploy(zSale, "0x279D6D836e75947F2aC9F66f893C4297B6Ba9e44");
   await deployer.deploy(token, 'Test 721', 'TEST', {
     "id": 0,
     "description": "My NFT",
@@ -24,4 +25,5 @@ module.exports = async function(deployer) {
   //zaad.Deposit({value: 1000000000000000000});
   //console.log("owner of 0: ", await td.ownerOf(0));
   //td.approve(zad.address, 0);
+  */
 };

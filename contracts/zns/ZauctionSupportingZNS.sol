@@ -8,7 +8,7 @@ import "./IRegistrar.sol";
 contract ZauctionSupportingZNS{
     using ECDSA for bytes32;
 
-    IERC20 weth;
+    IERC20 token;
     IRegistrar registrar;
     mapping(address => mapping(uint256 => bool)) public consumed;
     mapping(address => mapping(uint256 => uint256)) cancelprice;
@@ -24,8 +24,8 @@ contract ZauctionSupportingZNS{
         uint256 expireblock
     );
 
-    constructor(IERC20 wethAddress, IRegistrar registrarAddress) {
-        weth = wethAddress;
+    constructor(IERC20 tokenAddress, IRegistrar registrarAddress) {
+        token = tokenAddress;
         registrar = registrarAddress;
     }
 
@@ -33,7 +33,7 @@ contract ZauctionSupportingZNS{
     /// @param signature type encoded message signed by the bidder
     /// @param auctionid unique per address auction identifier chosen by seller
     /// @param bidder address of who the seller says the bidder is, for confirmation of the recovered bidder
-    /// @param bid weth amount bid
+    /// @param bid token amount bid
     /// @param nftaddress contract address of the nft we are transferring
     /// @param tokenid token id we are transferring
     /// @param minbid minimum bid allowed
@@ -65,15 +65,15 @@ contract ZauctionSupportingZNS{
 
         IERC721 nftcontract = IERC721(nftaddress);
         consumed[bidder][auctionid] = true;
-        SafeERC20.safeTransferFrom(weth, bidder, msg.sender, bid - bid / 10);
-        SafeERC20.safeTransferFrom(weth, bidder, registrar.minterOf(tokenid), bid / 10);
+        SafeERC20.safeTransferFrom(token, bidder, msg.sender, bid - (bid / 10));
+        SafeERC20.safeTransferFrom(token, bidder, registrar.minterOf(tokenid), bid / 10);
         nftcontract.safeTransferFrom(msg.sender, bidder, tokenid);
         emit BidAccepted(auctionid, bidder, msg.sender, bid, address(nftcontract), tokenid, expireblock);
     }
     
     /// invalidates all sender's bids at and under given price
     /// @param auctionid unique per address auction identifier chosen by seller
-    /// @param price weth amount to cancel at and under
+    /// @param price token amount to cancel at and under
     function cancelBidsUnderPrice(uint256  auctionid, uint256 price) external {
         cancelprice[msg.sender][auctionid] = price;
         emit Cancelled(msg.sender, auctionid, price);
