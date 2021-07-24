@@ -24,7 +24,7 @@
 //const fs = require('fs');
 const HDWalletProvider = require('truffle-hdwallet-provider');
 const mnemonic =
-  "mammal arm dizzy actor giraffe acoustic excuse appear asset endorse neck book";
+  "blast pull shoe alien open baby sand obtain table purchase cabbage body";
 
 module.exports = {
   /**

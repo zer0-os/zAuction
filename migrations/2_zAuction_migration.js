@@ -1,4 +1,4 @@
-const zAuction = artifacts.require("ZauctionSupportingZNS");
+const zAuction = artifacts.require("ZAuction");
 const zSale = artifacts.require("Zsale");
 const token = artifacts.require("ERC721TestToken");
 const weth = artifacts.require("ERC20TestToken");
