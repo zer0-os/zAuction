@@ -1,1 +1,0 @@
-ganache-cli --gasLimit 0x2810EB7C --db C:/Users/durien/ganache_db/ --defaultBalanceEther 700 --deterministic --mnemonic="mammal arm dizzy actor giraffe acoustic excuse appear asset endorse neck book"
