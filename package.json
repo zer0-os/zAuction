@@ -1,4 +1,11 @@
 {
+  "devDependencies": {
+    "@openzeppelin/contracts": "4.0.0",
+    "@openzeppelin/contracts-upgradeable": "4.0.0",
+    "@openzeppelin/hardhat-upgrades": "1.6.0",
+    "@openzeppelin/upgrades-core": "1.5.1",
+    "hardhat": "^2.6.3"
+  },
   "name": "zauction",
   "version": "0.1.0",
   "license": "MIT"
