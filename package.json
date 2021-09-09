@@ -4,7 +4,20 @@
     "@openzeppelin/contracts-upgradeable": "4.0.0",
     "@openzeppelin/hardhat-upgrades": "1.6.0",
     "@openzeppelin/upgrades-core": "1.5.1",
-    "hardhat": "2.6.3"
+    "hardhat": "2.6.3",
+
+    "prettier": "2.2.1",
+    "prettier-plugin-solidity": "1.0.0-beta.4",
+    "solhint": "3.3.3",
+    "solhint-plugin-prettier": "0.0.5"
+  },
+  "scripts": {
+    "build": "yarn run clean && yarn run compile",
+    "clean": "hardhat clean",
+    "compile": "hardhat compile",
+    "test": "hardhat test --show-stack-traces",
+    "fix:contracts": "prettier --write ./contracts/**/*.sol",
+    "lint:contracts": "./node_modules/.bin/solhint -f table contracts/**/*.sol"
   },
   "name": "zauction",
   "version": "0.1.0",

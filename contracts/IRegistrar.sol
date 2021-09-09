@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-interface IRegistrar
-{
+interface IRegistrar {
   // Checks if a domains metadata is locked
   function isDomainMetadataLocked(uint256 id) external view returns (bool);
 
