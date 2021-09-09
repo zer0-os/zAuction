@@ -6,7 +6,7 @@
     "avoid-suicide": "error",
     "avoid-sha3": "warn",
     "prettier/prettier": "warn",
-    "compiler-version": ["error", "^0.7.0"],
+    "compiler-version": ["error", "^0.8.4"],
     "func-visibility": ["warn", { "ignoreConstructors": true }]
   }
 }
