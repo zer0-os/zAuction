@@ -1,3 +1,4 @@
+import { ZAuction__factory } from "./../typechain/factories/ZAuction__factory";
 import { ethers, upgrades, network, run } from "hardhat";
 
 import {
@@ -16,8 +17,8 @@ import {
 
 const logger = getLogger("scripts::deploy-zauction");
 
-const tokenAddress = "0x1234C50c33902110230255FE1D730D84FA23e48e"; //fake addresses, replace with correct ones
-const registrarAddress = "0x1234C50c33902110230255FE1D730D84FA23e48e";
+const tokenAddress = "0xC613fCc3f81cC2888C5Cccc1620212420FFe4931"; //kovan addresses, change to correct later
+const registrarAddress = "0x50A0A3E9873D7e7d306299a75Dc05bd3Ab2d251F";
 
 async function main() {
   await run("compile");
@@ -42,7 +43,7 @@ async function main() {
     deploymentData = {};
   }
 
-  const zauctionfactory = await ethers.getContractFactory("ZAuction");
+  const zauctionfactory = new ZAuction__factory(deploymentAccount);
   const bytecodeHash = hashBytecodeWithoutMetadata(zauctionfactory.bytecode);
   logger.log(`Implementation version is ${bytecodeHash}`);
 

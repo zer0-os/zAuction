@@ -36,30 +36,3 @@ export const getDeploymentData = (network: string): DeploymentOutput => {
 
   return data;
 };
-
-let wordsCache: string[] = [];
-
-const fetchWords = (): string[] => {
-  if (wordsCache.length) {
-    return wordsCache;
-  }
-
-  wordsCache = fs
-    .readFileSync(`${__dirname}/wordlist.txt`)
-    .toString()
-    .split("\n")
-    .map((e) => e.trim());
-
-  return wordsCache;
-};
-
-export const getWords = (): string[] => {
-  const words = fetchWords();
-  return words;
-};
-
-export const getWord = (index: number): string => {
-  const words = fetchWords();
-  const chosenWord = words[index % words.length];
-  return chosenWord;
-};
