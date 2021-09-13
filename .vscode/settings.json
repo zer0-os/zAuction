@@ -1,3 +1,7 @@
 {
-    "solidity.compileUsingRemoteVersion": "latest"
+  "solidity.compileUsingRemoteVersion": "v0.8.4+commit.c7e474f2",
+  "editor.formatOnSave": true,
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "solidity.formatter": "prettier"
 }

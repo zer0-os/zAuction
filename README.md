@@ -1,19 +1,3 @@
-# `zer0 NFT auction contracts & webapp`
+# zAuction Smart Contracts
 
-## Install Dependencies
-
-```bash
-yarn
-```
-
-## Run Development Server
-
-```bash
-yarn start
-```
-
-## Test
-
-```bash
-truffle test
-```
+This repo contains the zAuction Smart Contracts and related utilities
