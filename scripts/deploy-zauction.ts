@@ -31,18 +31,6 @@ async function main() {
     `'${deploymentAccount.address}' will be used as the deployment account`
   );
 
-  const fileName = `${network.name}.json`;
-  const filepath = `${deploymentsFolder}/${fileName}`;
-  let deploymentData: DeploymentOutput;
-  try {
-    deploymentData = JSON.parse(
-      fs.readFileSync(filepath).toString()
-    ) as DeploymentOutput;
-  } catch (e) {
-    logger.debug(`New deployment for network detected.`);
-    deploymentData = {};
-  }
-
   const zauctionfactory = new ZAuction__factory(deploymentAccount);
   const bytecodeHash = hashBytecodeWithoutMetadata(zauctionfactory.bytecode);
   logger.log(`Implementation version is ${bytecodeHash}`);
