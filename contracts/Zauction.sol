@@ -1,11 +1,13 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./IRegistrar.sol";
 
-contract ZAuction {
+contract ZAuction is Initializable {
   using ECDSA for bytes32;
 
   IERC20 public token;
@@ -28,7 +30,10 @@ contract ZAuction {
     uint256 expireblock
   );
 
-  constructor(IERC20 tokenAddress, IRegistrar registrarAddress) {
+  function initialize(IERC20 tokenAddress, IRegistrar registrarAddress)
+    public
+    initializer
+  {
     token = tokenAddress;
     registrar = registrarAddress;
   }
@@ -60,16 +65,15 @@ contract ZAuction {
     require(bidder != msg.sender, "zAuction: sale to self");
     //require(registrar.isDomainMetadataLocked(tokenid), "zAuction: ZNS domain metadata must be locked");
 
-    bytes32 data =
-      createBid(
-        auctionid,
-        bid,
-        nftaddress,
-        tokenid,
-        minbid,
-        startblock,
-        expireblock
-      );
+    bytes32 data = createBid(
+      auctionid,
+      bid,
+      nftaddress,
+      tokenid,
+      minbid,
+      startblock,
+      expireblock
+    );
     require(
       bidder == recover(toEthSignedMessageHash(data), signature),
       "zAuction: recovered incorrect bidder"

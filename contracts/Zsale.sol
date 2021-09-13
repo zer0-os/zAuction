@@ -47,18 +47,17 @@ contract Zsale {
     require(seller != msg.sender, "zSale: sale to self");
     require(expireblock > block.number, "zSale: sale expired");
 
-    bytes32 data =
-      keccak256(
-        abi.encode(
-          saleid,
-          address(this),
-          block.chainid,
-          price,
-          nftaddress,
-          tokenid,
-          expireblock
-        )
-      );
+    bytes32 data = keccak256(
+      abi.encode(
+        saleid,
+        address(this),
+        block.chainid,
+        price,
+        nftaddress,
+        tokenid,
+        expireblock
+      )
+    );
 
     require(
       seller == recover(toEthSignedMessageHash(data), signature),
