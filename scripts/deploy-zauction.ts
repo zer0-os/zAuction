@@ -91,7 +91,6 @@ async function main() {
       tokenAddress,
       registrarAddress,
     },
-    undefined,
     "wilder-prod"
   );
 
@@ -117,7 +116,6 @@ const saveDeploymentData = async (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   args: { [key: string]: any },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  metadata?: { [key: string]: any },
   tag?: string
 ) => {
   let deploymentData: DeploymentOutput = {};
@@ -161,7 +159,6 @@ const saveDeploymentData = async (
     isUpgradable: deployment.isUpgradable,
     admin,
     implementation,
-    metadata,
   };
 
   deployments.push(deploymentInstance);
