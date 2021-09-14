@@ -39,9 +39,9 @@ async function main() {
   const accounts = await ethers.getSigners();
   const deploymentAccount = accounts[0];
 
-  logger.log(`Deploying to ${network.name}`);
+  logger.debug(`Deploying to ${network.name}`);
 
-  logger.log(
+  logger.debug(
     `'${deploymentAccount.address}' will be used as the deployment account`
   );
 
@@ -60,7 +60,7 @@ async function main() {
   );
   await instance.deployed();
 
-  logger.log(`Deployed contract to ${instance.address}`);
+  logger.debug(`Deployed contract to ${instance.address}`);
 
   const ozUpgradesManifestClient = await Manifest.forNetwork(network.provider);
   const manifest = await ozUpgradesManifestClient.read();
@@ -99,10 +99,10 @@ async function main() {
   //fs.mkdirSync(deploymentsFolder, { recursive: true });
 
   if (deploymentData.implementationAddress) {
-    logger.log(`Waiting for 5 confirmations`);
+    logger.debug(`Waiting for 5 confirmations`);
     await instance.deployTransaction.wait(5);
 
-    logger.log(`Attempting to verify implementation contract with etherscan`);
+    logger.debug(`Attempting to verify implementation contract with etherscan`);
     try {
       await run("verify:verify", {
         address: deploymentData.implementationAddress,
@@ -154,7 +154,7 @@ const saveDeploymentData = async (
 
   checkUniqueTag(finalTag, deployments);
 
-  logger.log(`Registering new deployment of ${type} with tag '${finalTag}'`);
+  logger.debug(`Registering new deployment of ${type} with tag '${finalTag}'`);
   const deploymentInstance: DeploymentData = {
     tag,
     address: deployment.instance.address,
@@ -170,7 +170,7 @@ const saveDeploymentData = async (
   deployments.push(deploymentInstance);
 
   writeDeploymentData(network.name, deploymentData);
-  logger.log(`Updated ${network.name} deployment file.`);
+  logger.debug(`Updated ${network.name} deployment file.`);
 };
 
 const checkUniqueTag = (tag: string, deployments: DeploymentData[]) => {
