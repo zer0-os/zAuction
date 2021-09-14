@@ -13,8 +13,6 @@ export interface DeploymentData {
   isUpgradable: boolean;
   admin?: string;
   implementation?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  metadata?: { [key: string]: any };
 }
 
 export interface DeploymentOutput {
