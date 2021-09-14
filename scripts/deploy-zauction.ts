@@ -83,7 +83,6 @@ async function main() {
     admin: manifest.admin.address,
   };
 
-  //updating saving system for deployment data
   logger.debug(`Saving deployment data...`);
   await saveDeploymentData(
     "zAuction",
@@ -95,8 +94,6 @@ async function main() {
     undefined,
     "wilder-prod"
   );
-
-  //fs.mkdirSync(deploymentsFolder, { recursive: true });
 
   if (deploymentData.implementationAddress) {
     logger.debug(`Waiting for 5 confirmations`);
