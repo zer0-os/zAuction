@@ -4,10 +4,11 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./IRegistrar.sol";
 
-contract ZAuction is Initializable {
+contract ZAuction is Initializable, OwnableUpgradeable {
   using ECDSA for bytes32;
 
   IERC20 public token;
@@ -34,6 +35,7 @@ contract ZAuction is Initializable {
     public
     initializer
   {
+    __Ownable_init();
     token = tokenAddress;
     registrar = registrarAddress;
   }
@@ -61,9 +63,8 @@ contract ZAuction is Initializable {
   ) external {
     require(startblock <= block.number, "zAuction: auction hasnt started");
     require(expireblock > block.number, "zAuction: auction expired");
-    require(minbid <= bid, "zAuction: cant accept bid below min");
-    require(bidder != msg.sender, "zAuction: sale to self");
-    //require(registrar.isDomainMetadataLocked(tokenid), "zAuction: ZNS domain metadata must be locked");
+    require(minbid <= bid, "zAuction: cannot accept bid below min");
+    require(bidder != msg.sender, "zAuction: cannot sell to self");
 
     bytes32 data = createBid(
       auctionid,
@@ -74,6 +75,7 @@ contract ZAuction is Initializable {
       startblock,
       expireblock
     );
+
     require(
       bidder == recover(toEthSignedMessageHash(data), signature),
       "zAuction: recovered incorrect bidder"
@@ -81,17 +83,21 @@ contract ZAuction is Initializable {
     require(!consumed[bidder][auctionid], "zAuction: data already consumed");
     require(
       bid > cancelprice[bidder][auctionid],
-      "zAuction: below cancel price"
+      "zAuction: bid below cancel price"
     );
+
+    // Fee percentage for NFT ID
+    uint256 fee = 10; // As a percent
+    uint256 royalty = bid * (fee / 100); // As a decimal
 
     IERC721 nftcontract = IERC721(nftaddress);
     consumed[bidder][auctionid] = true;
-    SafeERC20.safeTransferFrom(token, bidder, msg.sender, bid - (bid / 10));
+    SafeERC20.safeTransferFrom(token, bidder, msg.sender, bid - royalty);
     SafeERC20.safeTransferFrom(
       token,
       bidder,
       registrar.minterOf(tokenid),
-      bid / 10
+      royalty
     );
     nftcontract.safeTransferFrom(msg.sender, bidder, tokenid);
     emit BidAccepted(
@@ -127,14 +133,7 @@ contract ZAuction is Initializable {
         expireblock
       )
     );
-  }
-
-  /// invalidates all sender's bids at and under given price
-  /// @param auctionid unique per address auction identifier chosen by seller
-  /// @param price token amount to cancel at and under
-  function cancelBidsUnderPrice(uint256 auctionid, uint256 price) external {
-    cancelprice[msg.sender][auctionid] = price;
-    emit Cancelled(msg.sender, auctionid, price);
+    return data;
   }
 
   function recover(bytes32 hash, bytes memory signature)
