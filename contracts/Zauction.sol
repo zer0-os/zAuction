@@ -61,7 +61,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     uint256 startblock,
     uint256 expireblock
   ) external {
-    require(startblock <= block.number, "zAuction: auction hasnt started");
+    require(startblock <= block.number, "zAuction: auction hasn't started");
     require(expireblock > block.number, "zAuction: auction expired");
     require(minbid <= bid, "zAuction: cannot accept bid below min");
     require(bidder != msg.sender, "zAuction: cannot sell to self");
@@ -86,9 +86,8 @@ contract ZAuction is Initializable, OwnableUpgradeable {
       "zAuction: bid below cancel price"
     );
 
-    // Fee percentage for NFT ID
-    uint256 fee = 10; // As a percent
-    uint256 royalty = bid * (fee / 100); // As a decimal
+    // Will truncate any decimals
+    uint256 royalty = bid / 10;
 
     IERC721 nftcontract = IERC721(nftaddress);
     consumed[bidder][auctionid] = true;

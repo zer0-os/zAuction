@@ -13,3 +13,6 @@ typechain/
 coverage/
 coverage.json
 bin/
+
+# TypeScript
+dist/
