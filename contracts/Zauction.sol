@@ -14,21 +14,15 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   IERC20 public token;
   IRegistrar public registrar;
   mapping(address => mapping(uint256 => bool)) public consumed;
-  mapping(address => mapping(uint256 => uint256)) cancelprice;
 
-  event Cancelled(
-    address indexed bidder,
-    uint256 indexed auctionid,
-    uint256 price
-  );
   event BidAccepted(
-    uint256 auctionid,
+    uint256 auctionId,
     address indexed bidder,
     address indexed seller,
     uint256 amount,
-    address nftaddress,
-    uint256 tokenid,
-    uint256 expireblock
+    address nftAddress,
+    uint256 tokenId,
+    uint256 expireBlock
   );
 
   function initialize(IERC20 tokenAddress, IRegistrar registrarAddress)
@@ -42,90 +36,93 @@ contract ZAuction is Initializable, OwnableUpgradeable {
 
   /// recovers bidder's signature based on seller's proposed data and, if bid data hash matches the message hash, transfers nft and payment
   /// @param signature type encoded message signed by the bidder
-  /// @param auctionid unique per address auction identifier chosen by seller
+  /// @param auctionId unique per address auction identifier chosen by seller
   /// @param bidder address of who the seller says the bidder is, for confirmation of the recovered bidder
   /// @param bid token amount bid
-  /// @param nftaddress contract address of the nft we are transferring
-  /// @param tokenid token id we are transferring
+  /// @param nftAddress contract address of the nft we are transferring
+  /// @param tokenId token id we are transferring
   /// @param minbid minimum bid allowed
-  /// @param startblock block number at which acceptBid starts working
-  /// @param expireblock block number at which acceptBid stops working
+  /// @param startBlock block number at which acceptBid starts working
+  /// @param expireBlock block number at which acceptBid stops working
   function acceptBid(
     bytes memory signature,
-    uint256 auctionid,
+    uint256 auctionId,
     address bidder,
     uint256 bid,
-    address nftaddress,
-    uint256 tokenid,
+    address nftAddress,
+    uint256 tokenId,
     uint256 minbid,
-    uint256 startblock,
-    uint256 expireblock
+    uint256 startBlock,
+    uint256 expireBlock
   ) external {
-    require(startblock <= block.number, "zAuction: auction hasn't started");
-    require(expireblock > block.number, "zAuction: auction expired");
+    require(startBlock <= block.number, "zAuction: auction hasn't started");
+    require(expireBlock > block.number, "zAuction: auction expired");
     require(minbid <= bid, "zAuction: cannot accept bid below min");
     require(bidder != msg.sender, "zAuction: cannot sell to self");
 
     bytes32 data = createBid(
-      auctionid,
+      auctionId,
       bid,
-      nftaddress,
-      tokenid,
+      nftAddress,
+      tokenId,
       minbid,
-      startblock,
-      expireblock
+      startBlock,
+      expireBlock
     );
 
     require(
       bidder == recover(toEthSignedMessageHash(data), signature),
       "zAuction: recovered incorrect bidder"
     );
-    require(!consumed[bidder][auctionid], "zAuction: data already consumed");
+    require(!consumed[bidder][auctionId], "zAuction: data already consumed");
 
     // Will truncate any decimals
     uint256 royalty = bid / 10;
 
-    IERC721 nftcontract = IERC721(nftaddress);
-    consumed[bidder][auctionid] = true;
+    IERC721 nftContract = IERC721(nftAddress);
+    consumed[bidder][auctionId] = true;
+    // Bidder -> Owner, send funds
     SafeERC20.safeTransferFrom(token, bidder, msg.sender, bid - royalty);
+    // Bidder -> Registrar, pay royalty
     SafeERC20.safeTransferFrom(
       token,
       bidder,
-      registrar.minterOf(tokenid),
+      registrar.minterOf(tokenId),
       royalty
     );
-    nftcontract.safeTransferFrom(msg.sender, bidder, tokenid);
+    // Owner -> Bidder, send NFT
+    nftContract.safeTransferFrom(msg.sender, bidder, tokenId);
     emit BidAccepted(
-      auctionid,
+      auctionId,
       bidder,
       msg.sender,
       bid,
-      address(nftcontract),
-      tokenid,
-      expireblock
+      address(nftContract),
+      tokenId,
+      expireBlock
     );
   }
 
   function createBid(
-    uint256 auctionid,
+    uint256 auctionId,
     uint256 bid,
-    address nftaddress,
-    uint256 tokenid,
+    address nftAddress,
+    uint256 tokenId,
     uint256 minbid,
-    uint256 startblock,
-    uint256 expireblock
+    uint256 startBlock,
+    uint256 expireBlock
   ) public view returns (bytes32 data) {
     data = keccak256(
       abi.encode(
-        auctionid,
+        auctionId,
         address(this),
         block.chainid,
         bid,
-        nftaddress,
-        tokenid,
+        nftAddress,
+        tokenId,
         minbid,
-        startblock,
-        expireblock
+        startBlock,
+        expireBlock
       )
     );
     return data;
