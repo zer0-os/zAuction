@@ -1,11 +1,7 @@
 {
   "compilerOptions": {
     "target": "es2018",
-    "lib": [
-      "ES2018",
-      "DOM",
-      "ES2018.PROMISE"
-    ],
+    "lib": ["ES2018", "DOM", "ES2018.PROMISE"],
     "module": "commonjs",
     "strict": true,
     "esModuleInterop": true,
@@ -13,16 +9,7 @@
     "forceConsistentCasingInFileNames": true,
     "declaration": true
   },
-  "include": [
-    "./scripts",
-    "./test",
-    "./typechain",
-    "./lib"
-  ],
-  "exclude": [
-    "node_modules"
-  ],
-  "files": [
-    "./hardhat.config.ts"
-  ]
+  "include": ["./scripts", "./test", "./typechain"],
+  "exclude": ["node_modules", "dist"],
+  "files": ["./hardhat.config.ts"]
 }

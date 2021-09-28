@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 contract Zsale {
   using ECDSA for bytes32;
 
-  IERC20 weth;
+  IERC20 public weth;
   mapping(bytes32 => bool) public cancelled;
   mapping(address => mapping(uint256 => bool)) public consumed; //saleid to consumed state
 
