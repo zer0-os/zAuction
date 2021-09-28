@@ -2,7 +2,16 @@ import * as chai from "chai";
 import { ethers } from "hardhat";
 import { FakeContract, smock } from "@defi-wonderland/smock";
 
-import { ZAuction, ZAuction__factory } from "../typechain";
+import {
+  IERC20,
+  IERC20__factory,
+  IERC721,
+  IERC721__factory,
+  IRegistrar,
+  IRegistrar__factory,
+  ZAuction,
+  ZAuction__factory,
+} from "../typechain";
 import { BigNumber } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
@@ -14,11 +23,11 @@ describe("zAuction Contract Tests", () => {
   let bidder: SignerWithAddress;
   let owner: SignerWithAddress;
   let zAuction: ZAuction;
-  let mockZauction: FakeContract<ZAuction>;
+  let mockERC20Token: FakeContract<IERC20>;
+  let mockERC721: FakeContract<IERC721>;
+  let mockRegistrar: FakeContract<IRegistrar>;
 
-  // Use real contract address and tokenId for testing
-  const erc20TokenId =
-    "0xa16bf218d6e47d3d32b18a19391ba9806354623e85744cc991f6133e3b2663d4";
+  const tokenId = "0x1";
   const nftContract = "0xC613fCc3f81cC2888C5Cccc1620212420FFe4931";
 
   before(async () => {
@@ -27,18 +36,21 @@ describe("zAuction Contract Tests", () => {
     bidder = signers[1];
     owner = signers[2];
 
+    mockERC20Token = await smock.fake(IERC20__factory.abi);
+    mockERC721 = await smock.fake(IERC721__factory.abi);
+    mockRegistrar = await smock.fake(IRegistrar__factory.abi);
+
     const zAuctionFactory = new ZAuction__factory(creator);
     zAuction = await zAuctionFactory.deploy();
-    // todo maybe delete the fake?
-    mockZauction = await smock.fake(zAuction);
+    await zAuction.initialize(mockERC20Token.address, mockRegistrar.address);
   });
 
   it("Successfully accepts a bid", async () => {
     const bidParams = {
       auctionId: "4771690347",
       bid: "2000000000000000000",
-      nftAddress: nftContract,
-      tokenId: erc20TokenId,
+      nftAddress: mockERC721.address,
+      tokenId: "0x1",
       minBid: "0",
       startBlock: "0",
       expireBlock: "999999999999",
@@ -65,6 +77,7 @@ describe("zAuction Contract Tests", () => {
     // of an NFT is not necessarily the same as the
     // person who is the owner
     const owner = signers[2];
+    mockERC20Token.transferFrom.returns(true);
 
     // Note added "signature" and "bidder.address" props
     await zAuction
@@ -86,7 +99,7 @@ describe("zAuction Contract Tests", () => {
       auctionId: "4771690347",
       bid: "2000000000000000000",
       nftAddress: nftContract,
-      tokenId: erc20TokenId,
+      tokenId: tokenId,
       minBid: "0",
       startBlock: BigNumber.from("999999999999"),
       expireBlock: "1",
@@ -106,31 +119,27 @@ describe("zAuction Contract Tests", () => {
       ethers.utils.arrayify(bidToSign)
     );
 
-    try {
-      await zAuction
-        .connect(owner)
-        .acceptBid(
-          signature,
-          bidParams.auctionId,
-          bidder.address,
-          bidParams.bid,
-          bidParams.nftAddress,
-          bidParams.tokenId,
-          bidParams.minBid,
-          bidParams.startBlock,
-          bidParams.expireBlock
-        );
-    } catch (error) {
-      const message = (error as Error).message;
-      expect(message).to.contain("zAuction: auction hasn't started");
-    }
+    const tx = zAuction
+      .connect(owner)
+      .acceptBid(
+        signature,
+        bidParams.auctionId,
+        bidder.address,
+        bidParams.bid,
+        bidParams.nftAddress,
+        bidParams.tokenId,
+        bidParams.minBid,
+        bidParams.startBlock,
+        bidParams.expireBlock
+      );
+    await expect(tx).to.be.revertedWith("zAuction: auction hasn't started");
   });
   it("Fails when the current block is ahead of the expire block", async () => {
     const bidParams = {
       auctionId: "4771690347",
       bid: "2000000000000000000",
       nftAddress: nftContract,
-      tokenId: erc20TokenId,
+      tokenId: tokenId,
       minBid: "0",
       startBlock: "0",
       expireBlock: "1",
@@ -150,31 +159,27 @@ describe("zAuction Contract Tests", () => {
       ethers.utils.arrayify(bidToSign)
     );
 
-    try {
-      await zAuction
-        .connect(owner)
-        .acceptBid(
-          signature,
-          bidParams.auctionId,
-          bidder.address,
-          bidParams.bid,
-          bidParams.nftAddress,
-          bidParams.tokenId,
-          bidParams.minBid,
-          bidParams.startBlock,
-          bidParams.expireBlock
-        );
-    } catch (error) {
-      const message = (error as Error).message;
-      expect(message).to.contain("zAuction: auction expired");
-    }
+    const tx = zAuction
+      .connect(owner)
+      .acceptBid(
+        signature,
+        bidParams.auctionId,
+        bidder.address,
+        bidParams.bid,
+        bidParams.nftAddress,
+        bidParams.tokenId,
+        bidParams.minBid,
+        bidParams.startBlock,
+        bidParams.expireBlock
+      );
+    await expect(tx).to.be.revertedWith("zAuction: auction expired");
   });
   it("Fails when the bid is below the set minimum bid", async () => {
     const bidParams = {
       auctionId: "4771690347",
       bid: "2000000000000000000",
       nftAddress: nftContract,
-      tokenId: erc20TokenId,
+      tokenId: tokenId,
       minBid: "5000000000000000000",
       startBlock: "0",
       expireBlock: "999999999999",
@@ -194,31 +199,29 @@ describe("zAuction Contract Tests", () => {
       ethers.utils.arrayify(bidToSign)
     );
 
-    try {
-      await zAuction
-        .connect(owner)
-        .acceptBid(
-          signature,
-          bidParams.auctionId,
-          bidder.address,
-          bidParams.bid,
-          bidParams.nftAddress,
-          bidParams.tokenId,
-          bidParams.minBid,
-          bidParams.startBlock,
-          bidParams.expireBlock
-        );
-    } catch (error) {
-      const message = (error as Error).message;
-      expect(message).to.contain("zAuction: cannot accept bid below min");
-    }
+    const tx = zAuction
+      .connect(owner)
+      .acceptBid(
+        signature,
+        bidParams.auctionId,
+        bidder.address,
+        bidParams.bid,
+        bidParams.nftAddress,
+        bidParams.tokenId,
+        bidParams.minBid,
+        bidParams.startBlock,
+        bidParams.expireBlock
+      );
+    await expect(tx).to.be.revertedWith(
+      "zAuction: cannot accept bid below min"
+    );
   });
   it("Fails when someone tries to accept their own bid", async () => {
     const bidParams = {
       auctionId: "4771690347",
       bid: "2000000000000000000",
       nftAddress: nftContract,
-      tokenId: erc20TokenId,
+      tokenId: tokenId,
       minBid: "500000000",
       startBlock: "0",
       expireBlock: "999999999999",
@@ -238,31 +241,27 @@ describe("zAuction Contract Tests", () => {
       ethers.utils.arrayify(bidToSign)
     );
 
-    try {
-      await zAuction
-        .connect(owner)
-        .acceptBid(
-          signature,
-          bidParams.auctionId,
-          owner.address,
-          bidParams.bid,
-          bidParams.nftAddress,
-          bidParams.tokenId,
-          bidParams.minBid,
-          bidParams.startBlock,
-          bidParams.expireBlock
-        );
-    } catch (error) {
-      const message = (error as Error).message;
-      expect(message).to.contain("zAuction: cannot sell to self");
-    }
+    const tx = zAuction
+      .connect(owner)
+      .acceptBid(
+        signature,
+        bidParams.auctionId,
+        owner.address,
+        bidParams.bid,
+        bidParams.nftAddress,
+        bidParams.tokenId,
+        bidParams.minBid,
+        bidParams.startBlock,
+        bidParams.expireBlock
+      );
+    await expect(tx).to.be.revertedWith("zAuction: cannot sell to self");
   });
   it("Fails when we recover the incorrect bidder address", async () => {
     const bidParams = {
       auctionId: "4771690347",
       bid: "2000000000000000000",
       nftAddress: nftContract,
-      tokenId: erc20TokenId,
+      tokenId: tokenId,
       minBid: "500000000",
       startBlock: "0",
       expireBlock: "999999999999",
@@ -284,31 +283,27 @@ describe("zAuction Contract Tests", () => {
 
     // The bidder address was used in signing, but the creator
     // address is being sent and the recovery of that account will fail
-    try {
-      await zAuction
-        .connect(owner)
-        .acceptBid(
-          signature,
-          bidParams.auctionId,
-          creator.address,
-          bidParams.bid,
-          bidParams.nftAddress,
-          bidParams.tokenId,
-          bidParams.minBid,
-          bidParams.startBlock,
-          bidParams.expireBlock
-        );
-    } catch (error) {
-      const message = (error as Error).message;
-      expect(message).to.contain("zAuction: recovered incorrect bidder");
-    }
+    const tx = zAuction
+      .connect(owner)
+      .acceptBid(
+        signature,
+        bidParams.auctionId,
+        creator.address,
+        bidParams.bid,
+        bidParams.nftAddress,
+        bidParams.tokenId,
+        bidParams.minBid,
+        bidParams.startBlock,
+        bidParams.expireBlock
+      );
+    await expect(tx).to.be.revertedWith("zAuction: recovered incorrect bidder");
   });
-  it("Fails when a bid for an auction is not marked consumed", async () => {
+  it("Fails when a bid is already consumed", async () => {
     const bidParams = {
       auctionId: "4771690347",
       bid: "2000000000000000000",
       nftAddress: nftContract,
-      tokenId: erc20TokenId,
+      tokenId: tokenId,
       minBid: "500000000",
       startBlock: "0",
       expireBlock: "999999999999",
@@ -328,30 +323,20 @@ describe("zAuction Contract Tests", () => {
       ethers.utils.arrayify(bidToSign)
     );
 
-    // The bidder address was used in signing, but the creator
-    // address is being sent and the recovery of that account will fail
-    try {
-      await zAuction
-        .connect(owner)
-        .acceptBid(
-          signature,
-          bidParams.auctionId,
-          bidder.address,
-          bidParams.bid,
-          bidParams.nftAddress,
-          bidParams.tokenId,
-          bidParams.minBid,
-          bidParams.startBlock,
-          bidParams.expireBlock
-        );
-      const consumed = await zAuction.consumed(
+    const tx = zAuction
+      .connect(owner)
+      .acceptBid(
+        signature,
+        bidParams.auctionId,
         bidder.address,
-        bidParams.auctionId
+        bidParams.bid,
+        bidParams.nftAddress,
+        bidParams.tokenId,
+        bidParams.minBid,
+        bidParams.startBlock,
+        bidParams.expireBlock
       );
-      console.log(consumed);
-      expect(consumed).to.be.true;
-    } catch (error) {
-      console.log(error);
-    }
+
+    await expect(tx).to.be.revertedWith("zAuction: data already consumed");
   });
 });

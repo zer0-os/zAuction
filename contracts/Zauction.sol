@@ -81,10 +81,6 @@ contract ZAuction is Initializable, OwnableUpgradeable {
       "zAuction: recovered incorrect bidder"
     );
     require(!consumed[bidder][auctionid], "zAuction: data already consumed");
-    require(
-      bid > cancelprice[bidder][auctionid],
-      "zAuction: bid below cancel price"
-    );
 
     // Will truncate any decimals
     uint256 royalty = bid / 10;
