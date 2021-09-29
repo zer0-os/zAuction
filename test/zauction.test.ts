@@ -42,7 +42,12 @@ describe("zAuction Contract Tests", () => {
 
     const zAuctionFactory = new ZAuction__factory(creator);
     zAuction = await zAuctionFactory.deploy();
-    await zAuction.initialize(mockERC20Token.address, mockRegistrar.address);
+    const zAuctionV1KovanAddress = "0x18A804a028aAf1F30082E91d2947734961Dd7f89";
+    await zAuction.initialize(
+      mockERC20Token.address,
+      mockRegistrar.address,
+      zAuctionV1KovanAddress
+    );
   });
 
   it("Successfully accepts a bid", async () => {
