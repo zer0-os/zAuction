@@ -13,6 +13,9 @@ contract ZAuction is Initializable, OwnableUpgradeable {
 
   IERC20 public token;
   IRegistrar public registrar;
+
+  // Original zAuction contract address for backward compatibility
+  address zAuctionV1;
   mapping(address => mapping(uint256 => bool)) public consumed;
 
   event BidAccepted(
@@ -25,13 +28,15 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     uint256 expireBlock
   );
 
-  function initialize(IERC20 tokenAddress, IRegistrar registrarAddress)
-    public
-    initializer
-  {
+  function initialize(
+    IERC20 tokenAddress,
+    IRegistrar registrarAddress,
+    address zAuctionV1Address
+  ) public initializer {
     __Ownable_init();
     token = tokenAddress;
     registrar = registrarAddress;
+    zAuctionV1 = zAuctionV1Address;
   }
 
   /// recovers bidder's signature based on seller's proposed data and, if bid data hash matches the message hash, transfers nft and payment
@@ -70,10 +75,22 @@ contract ZAuction is Initializable, OwnableUpgradeable {
       expireBlock
     );
 
-    require(
-      bidder == recover(toEthSignedMessageHash(data), signature),
-      "zAuction: recovered incorrect bidder"
-    );
+    if (bidder != recover(toEthSignedMessageHash(data), signature)) {
+      // Check v1 encoding for backwards compatibility
+      bytes32 dataV1 = createBidV1(
+        auctionId,
+        bid,
+        nftAddress,
+        tokenId,
+        minbid,
+        startBlock,
+        expireBlock
+      );
+      require(
+        bidder == recover(toEthSignedMessageHash(dataV1), signature),
+        "zAuction: recovered incorrect bidder"
+      );
+    }
     require(!consumed[bidder][auctionId], "zAuction: data already consumed");
 
     // Will truncate any decimals
@@ -116,6 +133,31 @@ contract ZAuction is Initializable, OwnableUpgradeable {
       abi.encode(
         auctionId,
         address(this),
+        block.chainid,
+        bid,
+        nftAddress,
+        tokenId,
+        minbid,
+        startBlock,
+        expireBlock
+      )
+    );
+    return data;
+  }
+
+  function createBidV1(
+    uint256 auctionId,
+    uint256 bid,
+    address nftAddress,
+    uint256 tokenId,
+    uint256 minbid,
+    uint256 startBlock,
+    uint256 expireBlock
+  ) public view returns (bytes32 data) {
+    data = keccak256(
+      abi.encode(
+        auctionId,
+        zAuctionV1,
         block.chainid,
         bid,
         nftAddress,
