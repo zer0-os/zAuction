@@ -15,7 +15,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   IRegistrar public registrar;
 
   // Original zAuction contract address for backward compatibility
-  address zAuctionV1;
+  address legacyZAuction;
   mapping(address => mapping(uint256 => bool)) public consumed;
 
   event BidAccepted(
@@ -31,12 +31,12 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   function initialize(
     IERC20 tokenAddress,
     IRegistrar registrarAddress,
-    address zAuctionV1Address
+    address legacyZAuctionAddress
   ) public initializer {
     __Ownable_init();
     token = tokenAddress;
     registrar = registrarAddress;
-    zAuctionV1 = zAuctionV1Address;
+    legacyZAuction = legacyZAuctionAddress;
   }
 
   /// recovers bidder's signature based on seller's proposed data and, if bid data hash matches the message hash, transfers nft and payment
@@ -76,8 +76,8 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     );
 
     if (bidder != recover(toEthSignedMessageHash(data), signature)) {
-      // Check v1 encoding for backwards compatibility
-      bytes32 dataV1 = createBidV1(
+      // Encode data with legacy zAuction address for backwards compatibility
+      bytes32 legacyData = createLegacyBid(
         auctionId,
         bid,
         nftAddress,
@@ -87,7 +87,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
         expireBlock
       );
       require(
-        bidder == recover(toEthSignedMessageHash(dataV1), signature),
+        bidder == recover(toEthSignedMessageHash(legacyData), signature),
         "zAuction: recovered incorrect bidder"
       );
     }
@@ -145,7 +145,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     return data;
   }
 
-  function createBidV1(
+  function createLegacyBid(
     uint256 auctionId,
     uint256 bid,
     address nftAddress,
@@ -157,7 +157,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     data = keccak256(
       abi.encode(
         auctionId,
-        zAuctionV1,
+        legacyZAuction,
         block.chainid,
         bid,
         nftAddress,
