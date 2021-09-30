@@ -8,6 +8,9 @@ interface IRegistrar {
   // Gets a domains current royalty amount
   function domainRoyaltyAmount(uint256 id) external view returns (uint256);
 
+  // Returns the parent domain of a child domain
+  function parentOf(uint256 id) external view returns (uint256);
+
   //Gets a domain's minter
   function minterOf(uint256 id) external view returns (address);
 }

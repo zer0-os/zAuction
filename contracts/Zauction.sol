@@ -4,11 +4,12 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./IRegistrar.sol";
 
-contract ZAuction is Initializable, OwnableUpgradeable {
+contract ZAuction is Initializable, OwnableUpgradeable, ERC721Upgradeable {
   using ECDSA for bytes32;
 
   IERC20 public token;
@@ -93,17 +94,21 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     }
     require(!consumed[bidder][auctionId], "zAuction: data already consumed");
 
-    // Will truncate any decimals
-    uint256 royalty = bid / 10;
+    // tokenId === domainId in zNS registrar
+    // Gets royalty as percent + 5 decimal places, e.g. 10% === 1000000
+    uint256 royalty = calculateRoyalty(bid, tokenId);
 
+    // require statement for possible overflow?
     IERC721 nftContract = IERC721(nftAddress);
     consumed[bidder][auctionId] = true;
-    // Bidder -> Owner, send funds
+    // Bidder -> Owner, pay transaction
     SafeERC20.safeTransferFrom(token, bidder, msg.sender, bid - royalty);
-    // Bidder -> Registrar, pay royalty
+    // Bidder -> Top level owner, pay royalty
+    // address rootParentAddress = rootParentOf(tokenId);
     SafeERC20.safeTransferFrom(
       token,
       bidder,
+      // get address from id?
       registrar.minterOf(tokenId),
       royalty
     );
@@ -119,6 +124,24 @@ contract ZAuction is Initializable, OwnableUpgradeable {
       expireBlock
     );
   }
+
+  function calculateRoyalty(uint256 bid, uint256 id)
+    public
+    view
+    returns (uint256)
+  {
+    require(id > 0, "zAuction: must provide a valid id");
+    uint256 domainRoyalty = registrar.domainRoyaltyAmount(id);
+    if (domainRoyalty == 0) return 0;
+    uint256 divisor = 10000000 / domainRoyalty;
+    uint256 calculatedRoyalty = (bid / divisor);
+    return calculatedRoyalty;
+  }
+
+  // function setRoyaltyAmount(uint256 id, uint256 amount) public {
+  //   // unlock metadata first?
+  //   registrar.setDomainRoyaltyAmount(id, amount);
+  // }
 
   function createBid(
     uint256 auctionId,
@@ -180,5 +203,22 @@ contract ZAuction is Initializable, OwnableUpgradeable {
 
   function toEthSignedMessageHash(bytes32 hash) public pure returns (bytes32) {
     return hash.toEthSignedMessageHash();
+  }
+
+  function rootParentOf(uint256 id) external view returns (address) {
+    uint256 parentId = registrar.parentOf(id);
+    uint256 holder = 0;
+    while (parentId != 0) {
+      holder = parentId; // Hold on to previous parent
+      parentId = registrar.parentOf(parentId);
+    }
+    address rootAddress;
+    // id was already root parent owner
+    if (holder == 0) {
+      rootAddress = ownerOf(id);
+      return rootAddress;
+    }
+    rootAddress = ownerOf(holder);
+    return rootAddress;
   }
 }

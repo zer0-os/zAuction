@@ -40,13 +40,17 @@ describe("zAuction Contract Tests", () => {
     mockERC721 = await smock.fake(IERC721__factory.abi);
     mockRegistrar = await smock.fake(IRegistrar__factory.abi);
 
+    // Royalty is 10%
+    mockRegistrar.domainRoyaltyAmount.returns(1000000);
+
     const zAuctionFactory = new ZAuction__factory(creator);
     zAuction = await zAuctionFactory.deploy();
-    const zAuctionV1KovanAddress = "0x18A804a028aAf1F30082E91d2947734961Dd7f89";
+    const legacyZAuctionKovanAddress =
+      "0x18A804a028aAf1F30082E91d2947734961Dd7f89";
     await zAuction.initialize(
       mockERC20Token.address,
       mockRegistrar.address,
-      zAuctionV1KovanAddress
+      legacyZAuctionKovanAddress
     );
   });
 
@@ -344,4 +348,47 @@ describe("zAuction Contract Tests", () => {
 
     await expect(tx).to.be.revertedWith("zAuction: data already consumed");
   });
+  it("Calculates a royalty correctly", async () => {
+    // Royalty is set to 10% above
+    const bid = 100;
+    const id = 1;
+    const royalty = await zAuction.calculateRoyalty(bid, id);
+    expect(royalty).to.equal(10);
+  });
+  it("Truncates a royalty on uneven numbers", async () => {
+    // Fraction that results in a decimal should truncate
+    // Set royalty to 13%
+    mockRegistrar.domainRoyaltyAmount.returns(1300000);
+
+    const bid = 120;
+    const id = 1;
+    // 13% of 120 is 15.6, but truncation happens twice in calculation
+    // making us round up
+    const royalty = await zAuction.calculateRoyalty(bid, id);
+    expect(royalty).to.equal(17);
+  });
+  it("Fails when an invalid id is given", async () => {
+    const bid = 120;
+    const id = 0;
+    // 13% of 120 is 15.6, but truncation happens twice in calculation
+    // making us round up
+    const tx = zAuction.calculateRoyalty(bid, id);
+    await expect(tx).to.be.revertedWith("zAuction: must provide a valid id");
+  });
+  it("Returns 0 when no loyalty is specified", async () => {
+    mockRegistrar.domainRoyaltyAmount.returns(0);
+    const bid = 100;
+    const id = 1;
+
+    const royalty = await zAuction.calculateRoyalty(bid, id);
+    expect(royalty).to.equal(0);
+  });
+  // it("Returns the expected root parent owner of a domain", async () => {
+  //   mockRegistrar.parentOf.returns(0);
+  //   mockERC721.ownerOf.returns("0x1");
+
+  //   const rootAddress = await zAuction.rootParentOf(1);
+  //   console.log(rootAddress);
+  //   expect(rootAddress).to.equal("0x1");
+  // });
 });
