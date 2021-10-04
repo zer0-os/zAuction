@@ -8,6 +8,9 @@ interface IRegistrar {
   // Gets a domains current royalty amount
   function domainRoyaltyAmount(uint256 id) external view returns (uint256);
 
+  // Sets the asked royalty amount on a domain (amount is a percentage with 5 decimal places)
+  function setDomainRoyaltyAmount(uint256 id, uint256 amount) external;
+
   // Returns the parent domain of a child domain
   function parentOf(uint256 id) external view returns (uint256);
 

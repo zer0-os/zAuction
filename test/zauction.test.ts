@@ -28,7 +28,6 @@ describe("zAuction Contract Tests", () => {
   let mockRegistrar: FakeContract<IRegistrar>;
 
   const tokenId = "0x1";
-  const nftContract = "0xC613fCc3f81cC2888C5Cccc1620212420FFe4931";
 
   before(async () => {
     const signers: SignerWithAddress[] = await ethers.getSigners();
@@ -40,7 +39,7 @@ describe("zAuction Contract Tests", () => {
     mockERC721 = await smock.fake(IERC721__factory.abi);
     mockRegistrar = await smock.fake(IRegistrar__factory.abi);
 
-    // Royalty is 10%
+    // Royalty is fixed at 10% unless otherwise specified
     mockRegistrar.domainRoyaltyAmount.returns(1000000);
 
     const zAuctionFactory = new ZAuction__factory(creator);
@@ -49,6 +48,7 @@ describe("zAuction Contract Tests", () => {
       "0x18A804a028aAf1F30082E91d2947734961Dd7f89";
     await zAuction.initialize(
       mockERC20Token.address,
+      mockERC721.address,
       mockRegistrar.address,
       legacyZAuctionKovanAddress
     );
@@ -58,7 +58,6 @@ describe("zAuction Contract Tests", () => {
     const bidParams = {
       auctionId: "4771690347",
       bid: "2000000000000000000",
-      nftAddress: mockERC721.address,
       tokenId: "0x1",
       minBid: "0",
       startBlock: "0",
@@ -68,7 +67,7 @@ describe("zAuction Contract Tests", () => {
     const bidToSign = await zAuction.createBid(
       bidParams.auctionId,
       bidParams.bid,
-      bidParams.nftAddress,
+      mockERC721.address,
       bidParams.tokenId,
       bidParams.minBid,
       bidParams.startBlock,
@@ -96,7 +95,6 @@ describe("zAuction Contract Tests", () => {
         bidParams.auctionId,
         bidder.address,
         bidParams.bid,
-        bidParams.nftAddress,
         bidParams.tokenId,
         bidParams.minBid,
         bidParams.startBlock,
@@ -107,7 +105,6 @@ describe("zAuction Contract Tests", () => {
     const bidParams = {
       auctionId: "4771690347",
       bid: "2000000000000000000",
-      nftAddress: nftContract,
       tokenId: tokenId,
       minBid: "0",
       startBlock: BigNumber.from("999999999999"),
@@ -117,7 +114,7 @@ describe("zAuction Contract Tests", () => {
     const bidToSign = await zAuction.createBid(
       bidParams.auctionId,
       bidParams.bid,
-      bidParams.nftAddress,
+      mockERC721.address,
       bidParams.tokenId,
       bidParams.minBid,
       bidParams.startBlock,
@@ -135,7 +132,6 @@ describe("zAuction Contract Tests", () => {
         bidParams.auctionId,
         bidder.address,
         bidParams.bid,
-        bidParams.nftAddress,
         bidParams.tokenId,
         bidParams.minBid,
         bidParams.startBlock,
@@ -147,7 +143,6 @@ describe("zAuction Contract Tests", () => {
     const bidParams = {
       auctionId: "4771690347",
       bid: "2000000000000000000",
-      nftAddress: nftContract,
       tokenId: tokenId,
       minBid: "0",
       startBlock: "0",
@@ -157,7 +152,7 @@ describe("zAuction Contract Tests", () => {
     const bidToSign = await zAuction.createBid(
       bidParams.auctionId,
       bidParams.bid,
-      bidParams.nftAddress,
+      mockERC721.address,
       bidParams.tokenId,
       bidParams.minBid,
       bidParams.startBlock,
@@ -175,7 +170,6 @@ describe("zAuction Contract Tests", () => {
         bidParams.auctionId,
         bidder.address,
         bidParams.bid,
-        bidParams.nftAddress,
         bidParams.tokenId,
         bidParams.minBid,
         bidParams.startBlock,
@@ -187,7 +181,6 @@ describe("zAuction Contract Tests", () => {
     const bidParams = {
       auctionId: "4771690347",
       bid: "2000000000000000000",
-      nftAddress: nftContract,
       tokenId: tokenId,
       minBid: "5000000000000000000",
       startBlock: "0",
@@ -197,7 +190,7 @@ describe("zAuction Contract Tests", () => {
     const bidToSign = await zAuction.createBid(
       bidParams.auctionId,
       bidParams.bid,
-      bidParams.nftAddress,
+      mockERC721.address,
       bidParams.tokenId,
       bidParams.minBid,
       bidParams.startBlock,
@@ -215,7 +208,6 @@ describe("zAuction Contract Tests", () => {
         bidParams.auctionId,
         bidder.address,
         bidParams.bid,
-        bidParams.nftAddress,
         bidParams.tokenId,
         bidParams.minBid,
         bidParams.startBlock,
@@ -229,7 +221,6 @@ describe("zAuction Contract Tests", () => {
     const bidParams = {
       auctionId: "4771690347",
       bid: "2000000000000000000",
-      nftAddress: nftContract,
       tokenId: tokenId,
       minBid: "500000000",
       startBlock: "0",
@@ -239,7 +230,7 @@ describe("zAuction Contract Tests", () => {
     const bidToSign = await zAuction.createBid(
       bidParams.auctionId,
       bidParams.bid,
-      bidParams.nftAddress,
+      mockERC721.address,
       bidParams.tokenId,
       bidParams.minBid,
       bidParams.startBlock,
@@ -257,7 +248,6 @@ describe("zAuction Contract Tests", () => {
         bidParams.auctionId,
         owner.address,
         bidParams.bid,
-        bidParams.nftAddress,
         bidParams.tokenId,
         bidParams.minBid,
         bidParams.startBlock,
@@ -269,7 +259,6 @@ describe("zAuction Contract Tests", () => {
     const bidParams = {
       auctionId: "4771690347",
       bid: "2000000000000000000",
-      nftAddress: nftContract,
       tokenId: tokenId,
       minBid: "500000000",
       startBlock: "0",
@@ -279,7 +268,7 @@ describe("zAuction Contract Tests", () => {
     const bidToSign = await zAuction.createBid(
       bidParams.auctionId,
       bidParams.bid,
-      bidParams.nftAddress,
+      mockERC721.address,
       bidParams.tokenId,
       bidParams.minBid,
       bidParams.startBlock,
@@ -299,7 +288,6 @@ describe("zAuction Contract Tests", () => {
         bidParams.auctionId,
         creator.address,
         bidParams.bid,
-        bidParams.nftAddress,
         bidParams.tokenId,
         bidParams.minBid,
         bidParams.startBlock,
@@ -311,7 +299,6 @@ describe("zAuction Contract Tests", () => {
     const bidParams = {
       auctionId: "4771690347",
       bid: "2000000000000000000",
-      nftAddress: nftContract,
       tokenId: tokenId,
       minBid: "500000000",
       startBlock: "0",
@@ -321,7 +308,7 @@ describe("zAuction Contract Tests", () => {
     const bidToSign = await zAuction.createBid(
       bidParams.auctionId,
       bidParams.bid,
-      bidParams.nftAddress,
+      mockERC721.address,
       bidParams.tokenId,
       bidParams.minBid,
       bidParams.startBlock,
@@ -339,7 +326,6 @@ describe("zAuction Contract Tests", () => {
         bidParams.auctionId,
         bidder.address,
         bidParams.bid,
-        bidParams.nftAddress,
         bidParams.tokenId,
         bidParams.minBid,
         bidParams.startBlock,
@@ -348,47 +334,43 @@ describe("zAuction Contract Tests", () => {
 
     await expect(tx).to.be.revertedWith("zAuction: data already consumed");
   });
-  it("Calculates a royalty correctly", async () => {
+  it("Calculates minter royalty correctly", async () => {
     // Royalty is set to 10% above
-    const bid = 100;
-    const id = 1;
-    const royalty = await zAuction.calculateRoyalty(bid, id);
-    expect(royalty).to.equal(10);
-  });
-  it("Truncates a royalty on uneven numbers", async () => {
-    // Fraction that results in a decimal should truncate
-    // Set royalty to 13%
-    mockRegistrar.domainRoyaltyAmount.returns(1300000);
+    // Each WILD is 10^18, Bid is 15 WILD
+    const bid = "15000000000000000000";
+    const id = "12345";
+    const royalty = await zAuction.calculateMinterRoyalty(bid, id);
+    const decimal = royalty.toString();
 
-    const bid = 120;
-    const id = 1;
-    // 13% of 120 is 15.6, but truncation happens twice in calculation
-    // making us round up
-    const royalty = await zAuction.calculateRoyalty(bid, id);
-    expect(royalty).to.equal(17);
+    // 10% of bid
+    expect(decimal).to.equal("1500000000000000000");
   });
-  it("Fails when an invalid id is given", async () => {
-    const bid = 120;
-    const id = 0;
-    // 13% of 120 is 15.6, but truncation happens twice in calculation
-    // making us round up
-    const tx = zAuction.calculateRoyalty(bid, id);
-    await expect(tx).to.be.revertedWith("zAuction: must provide a valid id");
-  });
-  it("Returns 0 when no loyalty is specified", async () => {
-    mockRegistrar.domainRoyaltyAmount.returns(0);
-    const bid = 100;
-    const id = 1;
+  it("Calculates root owner royalty correctly", async () => {
+    // Royalty is set to 10% above
+    // Each WILD is 10^18, Bid is 15 WILD
 
-    const royalty = await zAuction.calculateRoyalty(bid, id);
-    expect(royalty).to.equal(0);
-  });
-  // it("Returns the expected root parent owner of a domain", async () => {
-  //   mockRegistrar.parentOf.returns(0);
-  //   mockERC721.ownerOf.returns("0x1");
+    const bid = "15000000000000000000";
+    const id = "123245";
+    await zAuction.setRootRoyaltyAmount(id, 10);
+    const royalty = await zAuction.calculateRootOwnerRoyalty(id, bid, id);
+    const decimal = royalty.toString();
 
-  //   const rootAddress = await zAuction.rootParentOf(1);
-  //   console.log(rootAddress);
-  //   expect(rootAddress).to.equal("0x1");
-  // });
+    // 10% of bid (one less zero)
+    expect(decimal).to.equal("1500000000000000000");
+  });
+  it("Gets the root parent of a domain that is already the root", async () => {
+    // Case where id given is already the root
+    const id = "12345";
+    mockRegistrar.parentOf.returns(0);
+    let rootId = await zAuction.rootDomainIdOf(id);
+    expect(rootId).to.equal(id);
+  });
+  it("Gets the root parent when the id given is not already the root", async () => {
+    // Case where id given is not the root
+    const id = "2";
+    mockRegistrar.parentOf.returns("1");
+    mockRegistrar.parentOf.whenCalledWith("1").returns("0");
+    const rootId = await zAuction.seeWhatParentOfReturns(id);
+    expect(rootId).to.equal("1");
+  });
 });
