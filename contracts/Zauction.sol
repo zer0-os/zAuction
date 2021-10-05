@@ -12,7 +12,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   using ECDSA for bytes32;
 
   IERC20 public token;
-  IERC721 public nft;
+  // IERC721 public nft;
   IRegistrar public registrar;
 
   // Original zAuction contract address for backward compatibility
@@ -34,13 +34,13 @@ contract ZAuction is Initializable, OwnableUpgradeable {
 
   function initialize(
     IERC20 tokenAddress,
-    IERC721 nftAddress,
+    // IERC721 nftAddress,
     IRegistrar registrarAddress,
     address legacyZAuctionAddress
   ) public initializer {
     __Ownable_init();
     token = tokenAddress;
-    nft = nftAddress;
+    // nft = nftAddress;
     registrar = registrarAddress;
     legacyZAuction = legacyZAuctionAddress;
   }
@@ -72,7 +72,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     bytes32 data = createBid(
       auctionId,
       bid,
-      address(nft),
+      address(registrar),
       tokenId,
       minbid,
       startBlock,
@@ -84,7 +84,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
       bytes32 legacyData = createLegacyBid(
         auctionId,
         bid,
-        address(nft),
+        address(registrar),
         tokenId,
         minbid,
         startBlock,
@@ -109,14 +109,14 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     paymentTransfers(bidder, bid, msg.sender, rootId, tokenId);
 
     // Owner -> Bidder, send NFT
-    nft.safeTransferFrom(msg.sender, bidder, tokenId);
+    registrar.safeTransferFrom(msg.sender, bidder, tokenId);
 
     emit BidAccepted(
       auctionId,
       bidder,
       msg.sender,
       bid,
-      address(nft),
+      address(registrar),
       tokenId,
       expireBlock
     );
@@ -128,8 +128,8 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     address sender,
     uint256 rootId,
     uint256 tokenId
-  ) public {
-    address rootOwner = nft.ownerOf(rootId);
+  ) internal {
+    address rootOwner = registrar.ownerOf(rootId);
     uint256 rootRoyalty = calculateRootOwnerRoyalty(rootId, bid, tokenId);
     uint256 minterRoyalty = calculateMinterRoyalty(bid, tokenId);
 
@@ -187,11 +187,11 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   }
 
   function setRootRoyaltyAmount(uint256 id, uint256 amount) public {
+    require(
+      msg.sender == registrar.ownerOf(id),
+      "zAuction: Cannot set royalty on unowned item"
+    );
     rootDomainRoyalty[id] = amount;
-  }
-
-  function setRegistrarRoyaltyAmount(uint256 id, uint256 amount) public {
-    registrar.setDomainRoyaltyAmount(id, amount);
   }
 
   function createBid(

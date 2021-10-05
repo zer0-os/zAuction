@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-interface IRegistrar {
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+
+interface IRegistrar is IERC721 {
   // Checks if a domains metadata is locked
   function isDomainMetadataLocked(uint256 id) external view returns (bool);
 

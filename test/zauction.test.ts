@@ -5,8 +5,6 @@ import { FakeContract, smock } from "@defi-wonderland/smock";
 import {
   IERC20,
   IERC20__factory,
-  IERC721,
-  IERC721__factory,
   IRegistrar,
   IRegistrar__factory,
   ZAuction,
@@ -24,7 +22,6 @@ describe("zAuction Contract Tests", () => {
   let owner: SignerWithAddress;
   let zAuction: ZAuction;
   let mockERC20Token: FakeContract<IERC20>;
-  let mockERC721: FakeContract<IERC721>;
   let mockRegistrar: FakeContract<IRegistrar>;
 
   const tokenId = "0x1";
@@ -36,7 +33,6 @@ describe("zAuction Contract Tests", () => {
     owner = signers[2];
 
     mockERC20Token = await smock.fake(IERC20__factory.abi);
-    mockERC721 = await smock.fake(IERC721__factory.abi);
     mockRegistrar = await smock.fake(IRegistrar__factory.abi);
 
     // Royalty is fixed at 10% unless otherwise specified
@@ -48,7 +44,6 @@ describe("zAuction Contract Tests", () => {
       "0x18A804a028aAf1F30082E91d2947734961Dd7f89";
     await zAuction.initialize(
       mockERC20Token.address,
-      mockERC721.address,
       mockRegistrar.address,
       legacyZAuctionKovanAddress
     );
@@ -67,15 +62,12 @@ describe("zAuction Contract Tests", () => {
     const bidToSign = await zAuction.createBid(
       bidParams.auctionId,
       bidParams.bid,
-      mockERC721.address,
+      mockRegistrar.address,
       bidParams.tokenId,
       bidParams.minBid,
       bidParams.startBlock,
       bidParams.expireBlock
     );
-
-    const signers = await ethers.getSigners();
-    const bidder = signers[1];
 
     const signature = await bidder.signMessage(
       ethers.utils.arrayify(bidToSign)
@@ -84,7 +76,6 @@ describe("zAuction Contract Tests", () => {
     // In the case of a resale, the original creator
     // of an NFT is not necessarily the same as the
     // person who is the owner
-    const owner = signers[2];
     mockERC20Token.transferFrom.returns(true);
 
     // Note added "signature" and "bidder.address" props
@@ -114,7 +105,7 @@ describe("zAuction Contract Tests", () => {
     const bidToSign = await zAuction.createBid(
       bidParams.auctionId,
       bidParams.bid,
-      mockERC721.address,
+      mockRegistrar.address,
       bidParams.tokenId,
       bidParams.minBid,
       bidParams.startBlock,
@@ -152,7 +143,7 @@ describe("zAuction Contract Tests", () => {
     const bidToSign = await zAuction.createBid(
       bidParams.auctionId,
       bidParams.bid,
-      mockERC721.address,
+      mockRegistrar.address,
       bidParams.tokenId,
       bidParams.minBid,
       bidParams.startBlock,
@@ -190,7 +181,7 @@ describe("zAuction Contract Tests", () => {
     const bidToSign = await zAuction.createBid(
       bidParams.auctionId,
       bidParams.bid,
-      mockERC721.address,
+      mockRegistrar.address,
       bidParams.tokenId,
       bidParams.minBid,
       bidParams.startBlock,
@@ -230,7 +221,7 @@ describe("zAuction Contract Tests", () => {
     const bidToSign = await zAuction.createBid(
       bidParams.auctionId,
       bidParams.bid,
-      mockERC721.address,
+      mockRegistrar.address,
       bidParams.tokenId,
       bidParams.minBid,
       bidParams.startBlock,
@@ -268,7 +259,7 @@ describe("zAuction Contract Tests", () => {
     const bidToSign = await zAuction.createBid(
       bidParams.auctionId,
       bidParams.bid,
-      mockERC721.address,
+      mockRegistrar.address,
       bidParams.tokenId,
       bidParams.minBid,
       bidParams.startBlock,
@@ -308,7 +299,7 @@ describe("zAuction Contract Tests", () => {
     const bidToSign = await zAuction.createBid(
       bidParams.auctionId,
       bidParams.bid,
-      mockERC721.address,
+      mockRegistrar.address,
       bidParams.tokenId,
       bidParams.minBid,
       bidParams.startBlock,
@@ -335,42 +326,48 @@ describe("zAuction Contract Tests", () => {
     await expect(tx).to.be.revertedWith("zAuction: data already consumed");
   });
   it("Calculates minter royalty correctly", async () => {
-    // Royalty is set to 10% above
+    // A percent with 5 decimals of precision
+    mockRegistrar.domainRoyaltyAmount.returns(1000000);
     // Each WILD is 10^18, Bid is 15 WILD
-    const bid = "15000000000000000000";
+    const bid = ethers.utils.parseEther("15");
     const id = "12345";
     const royalty = await zAuction.calculateMinterRoyalty(bid, id);
     const decimal = royalty.toString();
 
     // 10% of bid
-    expect(decimal).to.equal("1500000000000000000");
+    expect(decimal).to.equal(ethers.utils.parseEther("1.5"));
   });
   it("Calculates root owner royalty correctly", async () => {
-    // Royalty is set to 10% above
     // Each WILD is 10^18, Bid is 15 WILD
-
-    const bid = "15000000000000000000";
+    // A percent with 5 decimals of precision
+    const bid = ethers.utils.parseEther("15");
     const id = "123245";
-    await zAuction.setRootRoyaltyAmount(id, 10);
+    mockRegistrar.domainRoyaltyAmount.returns(1000000);
+    const callers = await ethers.getSigners();
+    mockRegistrar.ownerOf.whenCalledWith(id).returns(callers[0].address);
+
+    await zAuction.connect(callers[0]).setRootRoyaltyAmount(id, 10);
+
     const royalty = await zAuction.calculateRootOwnerRoyalty(id, bid, id);
     const decimal = royalty.toString();
 
     // 10% of bid (one less zero)
-    expect(decimal).to.equal("1500000000000000000");
+    expect(decimal).to.equal(ethers.utils.parseEther("1.5"));
   });
   it("Gets the root parent of a domain that is already the root", async () => {
     // Case where id given is already the root
-    const id = "12345";
     mockRegistrar.parentOf.returns(0);
-    let rootId = await zAuction.rootDomainIdOf(id);
+    const id = "12345";
+    const rootId = await zAuction.rootDomainIdOf(id);
     expect(rootId).to.equal(id);
   });
   it("Gets the root parent when the id given is not already the root", async () => {
     // Case where id given is not the root
-    const id = "2";
-    mockRegistrar.parentOf.returns("1");
+    mockRegistrar.parentOf.whenCalledWith("3").returns("2");
+    mockRegistrar.parentOf.whenCalledWith("2").returns("1");
     mockRegistrar.parentOf.whenCalledWith("1").returns("0");
-    const rootId = await zAuction.seeWhatParentOfReturns(id);
+    const id = "3";
+    const rootId = await zAuction.rootDomainIdOf(id);
     expect(rootId).to.equal("1");
   });
 });
