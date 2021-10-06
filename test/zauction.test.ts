@@ -432,7 +432,7 @@ describe("zAuction Contract Tests", () => {
     // Each WILD is 10^18, Bid is 15 WILD
     const bid = ethers.utils.parseEther("15");
     const id = "12345";
-    const royalty = await zAuction.calculateMinterRoyalty(bid, id);
+    const royalty = await zAuction.calculateMinterRoyalty(id, bid);
     const decimal = royalty.toString();
 
     // 10% of bid

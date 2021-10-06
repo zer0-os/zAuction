@@ -134,6 +134,9 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     topLevelDomainFee[id] = amount;
   }
 
+  /// Fetch the top level domain fee if it exists and calculate the token amount
+  /// @param topLevelId The id of the top level domain for a subdomain
+  /// @param bid The bid for the fee to apply to
   function calculateTopLevelDomainFee(uint256 topLevelId, uint256 bid)
     public
     view
@@ -151,7 +154,10 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     return calculatedFee;
   }
 
-  function calculateMinterRoyalty(uint256 bid, uint256 id)
+  /// Fetch the minter royalty if it exists and calculate the token amount
+  /// @param bid The bid for the royalty to be calculated
+  /// @param id The id of the minted domain
+  function calculateMinterRoyalty(uint256 id, uint256 bid)
     public
     view
     returns (uint256)
@@ -166,6 +172,14 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     return royalty;
   }
 
+  /// Create a bid object hashed with the current contract address
+  /// @param auctionId unique per address auction identifier chosen by seller
+  /// @param bid token amount bid
+  /// @param nftAddress address of the nft contract
+  /// @param tokenId token id we are transferring
+  /// @param minbid minimum bid allowed
+  /// @param startBlock block number at which acceptBid starts working
+  /// @param expireBlock block number at which acceptBid stops working
   function createBid(
     uint256 auctionId,
     uint256 bid,
@@ -191,6 +205,15 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     return data;
   }
 
+  /// Create a bid object hashed with the legacy contract address
+  /// for backwards compatability.
+  /// @param auctionId unique per address auction identifier chosen by seller
+  /// @param bid token amount bid
+  /// @param nftAddress address of the nft contract
+  /// @param tokenId token id we are transferring
+  /// @param minbid minimum bid allowed
+  /// @param startBlock block number at which acceptBid starts working
+  /// @param expireBlock block number at which acceptBid stops working
   function createLegacyBid(
     uint256 auctionId,
     uint256 bid,
@@ -227,6 +250,9 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     return holder;
   }
 
+  /// Recover an account from a signature hash
+  /// @param hash the bytes object
+  /// @param signature the signature to recover from
   function recover(bytes32 hash, bytes memory signature)
     public
     pure
@@ -239,21 +265,28 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     return hash.toEthSignedMessageHash();
   }
 
+  /// Send all required payment transfers when an NFT is sold
+  /// This requires paying the owner, minter, and top level domain owner
+  /// @param bidder address of who the seller says the bidder is, for confirmation of the recovered bidder
+  /// @param bid token amount bid
+  /// @param owner address of the owner of that domain pre-transfer
+  /// @param topLevelId the ID of the top level domain for a given domain or subdomain
+  /// @param tokenId the ID of the domain
   function paymentTransfers(
     address bidder,
     uint256 bid,
-    address sender,
+    address owner,
     uint256 topLevelId,
     uint256 tokenId
   ) internal {
     address topLevelOwner = registrar.ownerOf(topLevelId);
     uint256 topLevelFee = calculateTopLevelDomainFee(topLevelId, bid);
-    uint256 minterRoyalty = calculateMinterRoyalty(bid, tokenId);
+    uint256 minterRoyalty = calculateMinterRoyalty(tokenId, bid);
 
     uint256 bidActual = bid - minterRoyalty - topLevelFee;
 
     // Bidder -> Owner, pay transaction
-    SafeERC20.safeTransferFrom(token, bidder, sender, bidActual);
+    SafeERC20.safeTransferFrom(token, bidder, owner, bidActual);
 
     // Bidder -> Minter, pay minter royalty
     SafeERC20.safeTransferFrom(
