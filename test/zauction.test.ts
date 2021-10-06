@@ -1,5 +1,4 @@
 import * as chai from "chai";
-import * as sinonChai from "sinon-chai";
 import { ethers } from "hardhat";
 import { FakeContract, smock } from "@defi-wonderland/smock";
 
@@ -16,7 +15,6 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 
 chai.use(smock.matchers);
-// chai.use(sinonChai.default);
 
 describe("zAuction Contract Tests", () => {
   let creator: SignerWithAddress;
