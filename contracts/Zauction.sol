@@ -12,15 +12,14 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   using ECDSA for bytes32;
 
   IERC20 public token;
-  // IERC721 public nft;
   IRegistrar public registrar;
 
   // Original zAuction contract address for backward compatibility
   address legacyZAuction;
 
   mapping(address => mapping(uint256 => bool)) public consumed;
-  mapping(uint256 => uint256) public rootDomainId;
-  mapping(uint256 => uint256) public rootDomainRoyalty;
+  mapping(uint256 => uint256) public topLevelDomainIdCache;
+  mapping(uint256 => uint256) public topLevelDomainFee;
 
   event BidAccepted(
     uint256 auctionId,
@@ -34,13 +33,11 @@ contract ZAuction is Initializable, OwnableUpgradeable {
 
   function initialize(
     IERC20 tokenAddress,
-    // IERC721 nftAddress,
     IRegistrar registrarAddress,
     address legacyZAuctionAddress
   ) public initializer {
     __Ownable_init();
     token = tokenAddress;
-    // nft = nftAddress;
     registrar = registrarAddress;
     legacyZAuction = legacyZAuctionAddress;
   }
@@ -97,16 +94,16 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     }
     require(!consumed[bidder][auctionId], "zAuction: data already consumed");
 
-    uint256 rootId = rootDomainId[tokenId];
-    if (rootId == 0) {
-      rootId = rootDomainIdOf(tokenId);
-      rootDomainId[tokenId] = rootId;
+    uint256 topLevelId = topLevelDomainIdCache[tokenId];
+    if (topLevelId == 0) {
+      topLevelId = topLevelDomainIdOf(tokenId);
+      topLevelDomainIdCache[tokenId] = topLevelId;
     }
 
     consumed[bidder][auctionId] = true;
 
-    // Transfer payment and royalties
-    paymentTransfers(bidder, bid, msg.sender, rootId, tokenId);
+    // Transfer payment, royalty to minter, and fee to topLevel domain
+    paymentTransfers(bidder, bid, msg.sender, topLevelId, tokenId);
 
     // Owner -> Bidder, send NFT
     registrar.safeTransferFrom(msg.sender, bidder, tokenId);
@@ -122,52 +119,35 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     );
   }
 
-  function paymentTransfers(
-    address bidder,
-    uint256 bid,
-    address sender,
-    uint256 rootId,
-    uint256 tokenId
-  ) internal {
-    address rootOwner = registrar.ownerOf(rootId);
-    uint256 rootRoyalty = calculateRootOwnerRoyalty(rootId, bid, tokenId);
-    uint256 minterRoyalty = calculateMinterRoyalty(bid, tokenId);
-
-    uint256 bidActual = bid - minterRoyalty - rootRoyalty;
-
-    // Bidder -> Owner, pay transaction
-    SafeERC20.safeTransferFrom(token, bidder, sender, bidActual);
-
-    // Bidder -> Minter, pay minter royalty
-    SafeERC20.safeTransferFrom(
-      token,
-      bidder,
-      registrar.minterOf(tokenId),
-      minterRoyalty
+  // Amount given should be as a percent with 5 decimals of precision
+  // e.g. 10% is 1000000, 0.0001% is 1
+  function setTopLevelDomainFee(uint256 id, uint256 amount) public {
+    require(
+      msg.sender == registrar.ownerOf(id),
+      "zAuction: Cannot set fee on unowned domain"
     );
-
-    // Bidder -> Root Owner, pay root owner royalty
-    SafeERC20.safeTransferFrom(token, bidder, rootOwner, rootRoyalty);
+    require(amount <= 1000000, "zAuction: Cannot set a fee higher than 10%");
+    require(amount >= 1, "zAuction: Cannot set a fee lower than 0.0001%");
+    topLevelDomainFee[id] = amount;
   }
 
-  function calculateRootOwnerRoyalty(
-    uint256 rootId,
-    uint256 bid,
-    uint256 id
-  ) public view returns (uint256) {
-    require(id > 0, "zAuction: must provide a valid id");
+  function calculateTopLevelDomainFee(uint256 topLevelId, uint256 bid)
+    public
+    view
+    returns (uint256)
+  {
+    require(topLevelId > 0, "zAuction: must provide a valid id");
+    require(bid > 0, "zAuction: Cannot calculate domain fee on an empty bid");
 
     // Find what percent they've specified as a royalty
-    uint256 royalty = rootDomainRoyalty[rootId];
+    uint256 fee = topLevelDomainFee[topLevelId];
 
-    // If not found or 0% royalty
-    if (royalty == 0) return 0;
-    // if not found because it's new do we just say 0?
+    // If not found
+    if (fee == 0) return 0;
 
-    // Pad with 18 zeroes for precision
-    uint256 divisor = (100 * 10**18) / (royalty * 10**18);
-    uint256 calculatedRoyalty = (bid / divisor);
-    return calculatedRoyalty;
+    uint256 calculatedFee = (bid * fee * 10**13) / (100 * 10**18);
+
+    return calculatedFee;
   }
 
   function calculateMinterRoyalty(uint256 bid, uint256 id)
@@ -181,17 +161,9 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     if (domainRoyalty == 0) return 0; // same here, 0 for 0% or 0 for not found?
 
     // Pad with 18 zeroes for precision, 13 for domainRoyalty as already 5 decimal points captured
-    uint256 divisor = (100 * (10**18)) / (domainRoyalty * 10**13);
+    uint256 divisor = (100 * 10**18) / (domainRoyalty * 10**13);
     uint256 calculatedRoyalty = (bid / divisor);
     return calculatedRoyalty;
-  }
-
-  function setRootRoyaltyAmount(uint256 id, uint256 amount) public {
-    require(
-      msg.sender == registrar.ownerOf(id),
-      "zAuction: Cannot set royalty on unowned item"
-    );
-    rootDomainRoyalty[id] = amount;
   }
 
   function createBid(
@@ -244,6 +216,17 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     return data;
   }
 
+  // Will return self if already at the top level
+  function topLevelDomainIdOf(uint256 id) public view returns (uint256) {
+    uint256 parentId = registrar.parentOf(id);
+    uint256 holder = id;
+    while (parentId != 0) {
+      holder = parentId; // Hold on to previous parent
+      parentId = registrar.parentOf(parentId);
+    }
+    return holder;
+  }
+
   function recover(bytes32 hash, bytes memory signature)
     public
     pure
@@ -256,13 +239,31 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     return hash.toEthSignedMessageHash();
   }
 
-  function rootDomainIdOf(uint256 id) public view returns (uint256) {
-    uint256 parentId = registrar.parentOf(id);
-    uint256 holder = id;
-    while (parentId != 0) {
-      holder = parentId; // Hold on to previous parent
-      parentId = registrar.parentOf(parentId);
-    }
-    return holder;
+  function paymentTransfers(
+    address bidder,
+    uint256 bid,
+    address sender,
+    uint256 topLevelId,
+    uint256 tokenId
+  ) internal {
+    address topLevelOwner = registrar.ownerOf(topLevelId);
+    uint256 topLevelFee = calculateTopLevelDomainFee(topLevelId, bid);
+    uint256 minterRoyalty = calculateMinterRoyalty(bid, tokenId);
+
+    uint256 bidActual = bid - minterRoyalty - topLevelFee;
+
+    // Bidder -> Owner, pay transaction
+    SafeERC20.safeTransferFrom(token, bidder, sender, bidActual);
+
+    // Bidder -> Minter, pay minter royalty
+    SafeERC20.safeTransferFrom(
+      token,
+      bidder,
+      registrar.minterOf(tokenId),
+      minterRoyalty
+    );
+
+    // Bidder -> topLevel Owner, pay top level owner fee
+    SafeERC20.safeTransferFrom(token, bidder, topLevelOwner, topLevelFee);
   }
 }
