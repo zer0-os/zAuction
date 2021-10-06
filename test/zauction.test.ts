@@ -113,14 +113,9 @@ describe("zAuction Contract Tests", () => {
         bidParams.expireBlock
       );
 
-    console.log("Minter:\t", minter.address);
-    console.log("TL Owner:\t", topLevelOwner.address);
-    console.log("Buyer:\t", buyer.address);
-    console.log("Seller:\t", seller.address);
-
-    const transactionPayment = ethers.utils.parseEther("111.389");
+    const transactionPayment = ethers.utils.parseEther("111.3888");
     const royalty = ethers.utils.parseEther("6.150");
-    const fee = ethers.utils.parseEther("5.461");
+    const fee = ethers.utils.parseEther("5.4612");
 
     expect(mockRegistrar.domainRoyaltyAmount).to.have.been.calledWith(
       topLevelId
@@ -155,441 +150,441 @@ describe("zAuction Contract Tests", () => {
     mockRegistrar.ownerOf.reset();
   });
 
-  //   it("Successfully accepts a bid", async () => {
-  //     const bidParams = {
-  //       auctionId: "4771690347",
-  //       bid: "2000000000000000000",
-  //       tokenId: "0x1",
-  //       minBid: "0",
-  //       startBlock: "0",
-  //       expireBlock: "999999999999",
-  //     };
+  it("Successfully accepts a bid", async () => {
+    const bidParams = {
+      auctionId: "4771690347",
+      bid: "2000000000000000000",
+      tokenId: "0x1",
+      minBid: "0",
+      startBlock: "0",
+      expireBlock: "999999999999",
+    };
 
-  //     const bidToSign = await zAuction.createBid(
-  //       bidParams.auctionId,
-  //       bidParams.bid,
-  //       mockRegistrar.address,
-  //       bidParams.tokenId,
-  //       bidParams.minBid,
-  //       bidParams.startBlock,
-  //       bidParams.expireBlock
-  //     );
+    const bidToSign = await zAuction.createBid(
+      bidParams.auctionId,
+      bidParams.bid,
+      mockRegistrar.address,
+      bidParams.tokenId,
+      bidParams.minBid,
+      bidParams.startBlock,
+      bidParams.expireBlock
+    );
 
-  //     const signature = await bidder.signMessage(
-  //       ethers.utils.arrayify(bidToSign)
-  //     );
+    const signature = await bidder.signMessage(
+      ethers.utils.arrayify(bidToSign)
+    );
 
-  //     // In the case of a resale, the original creator
-  //     // of an NFT is not necessarily the same as the
-  //     // person who is the owner
-  //     mockERC20Token.transferFrom.returns(true);
+    // In the case of a resale, the original creator
+    // of an NFT is not necessarily the same as the
+    // person who is the owner
+    mockERC20Token.transferFrom.returns(true);
 
-  //     // Note added "signature" and "bidder.address" props
-  //     await zAuction
-  //       .connect(owner)
-  //       .acceptBid(
-  //         signature,
-  //         bidParams.auctionId,
-  //         bidder.address,
-  //         bidParams.bid,
-  //         bidParams.tokenId,
-  //         bidParams.minBid,
-  //         bidParams.startBlock,
-  //         bidParams.expireBlock
-  //       );
-  //   });
-  //   it("Fails when the auction hasn't started", async () => {
-  //     const bidParams = {
-  //       auctionId: "4771690347",
-  //       bid: "2000000000000000000",
-  //       tokenId: "0x1",
-  //       minBid: "0",
-  //       startBlock: BigNumber.from("999999999999"),
-  //       expireBlock: "1",
-  //     };
+    // Note added "signature" and "bidder.address" props
+    await zAuction
+      .connect(owner)
+      .acceptBid(
+        signature,
+        bidParams.auctionId,
+        bidder.address,
+        bidParams.bid,
+        bidParams.tokenId,
+        bidParams.minBid,
+        bidParams.startBlock,
+        bidParams.expireBlock
+      );
+  });
+  it("Fails when the auction hasn't started", async () => {
+    const bidParams = {
+      auctionId: "4771690347",
+      bid: "2000000000000000000",
+      tokenId: "0x1",
+      minBid: "0",
+      startBlock: BigNumber.from("999999999999"),
+      expireBlock: "1",
+    };
 
-  //     const bidToSign = await zAuction.createBid(
-  //       bidParams.auctionId,
-  //       bidParams.bid,
-  //       mockRegistrar.address,
-  //       bidParams.tokenId,
-  //       bidParams.minBid,
-  //       bidParams.startBlock,
-  //       bidParams.expireBlock
-  //     );
+    const bidToSign = await zAuction.createBid(
+      bidParams.auctionId,
+      bidParams.bid,
+      mockRegistrar.address,
+      bidParams.tokenId,
+      bidParams.minBid,
+      bidParams.startBlock,
+      bidParams.expireBlock
+    );
 
-  //     const signature = await bidder.signMessage(
-  //       ethers.utils.arrayify(bidToSign)
-  //     );
+    const signature = await bidder.signMessage(
+      ethers.utils.arrayify(bidToSign)
+    );
 
-  //     const tx = zAuction
-  //       .connect(owner)
-  //       .acceptBid(
-  //         signature,
-  //         bidParams.auctionId,
-  //         bidder.address,
-  //         bidParams.bid,
-  //         bidParams.tokenId,
-  //         bidParams.minBid,
-  //         bidParams.startBlock,
-  //         bidParams.expireBlock
-  //       );
-  //     await expect(tx).to.be.revertedWith("zAuction: auction hasn't started");
-  //   });
-  //   it("Fails when the current block is ahead of the expire block", async () => {
-  //     const bidParams = {
-  //       auctionId: "4771690347",
-  //       bid: "2000000000000000000",
-  //       tokenId: "0x1",
-  //       minBid: "0",
-  //       startBlock: "0",
-  //       expireBlock: "1",
-  //     };
+    const tx = zAuction
+      .connect(owner)
+      .acceptBid(
+        signature,
+        bidParams.auctionId,
+        bidder.address,
+        bidParams.bid,
+        bidParams.tokenId,
+        bidParams.minBid,
+        bidParams.startBlock,
+        bidParams.expireBlock
+      );
+    await expect(tx).to.be.revertedWith("zAuction: auction hasn't started");
+  });
+  it("Fails when the current block is ahead of the expire block", async () => {
+    const bidParams = {
+      auctionId: "4771690347",
+      bid: "2000000000000000000",
+      tokenId: "0x1",
+      minBid: "0",
+      startBlock: "0",
+      expireBlock: "1",
+    };
 
-  //     const bidToSign = await zAuction.createBid(
-  //       bidParams.auctionId,
-  //       bidParams.bid,
-  //       mockRegistrar.address,
-  //       bidParams.tokenId,
-  //       bidParams.minBid,
-  //       bidParams.startBlock,
-  //       bidParams.expireBlock
-  //     );
+    const bidToSign = await zAuction.createBid(
+      bidParams.auctionId,
+      bidParams.bid,
+      mockRegistrar.address,
+      bidParams.tokenId,
+      bidParams.minBid,
+      bidParams.startBlock,
+      bidParams.expireBlock
+    );
 
-  //     const signature = await bidder.signMessage(
-  //       ethers.utils.arrayify(bidToSign)
-  //     );
+    const signature = await bidder.signMessage(
+      ethers.utils.arrayify(bidToSign)
+    );
 
-  //     const tx = zAuction
-  //       .connect(owner)
-  //       .acceptBid(
-  //         signature,
-  //         bidParams.auctionId,
-  //         bidder.address,
-  //         bidParams.bid,
-  //         bidParams.tokenId,
-  //         bidParams.minBid,
-  //         bidParams.startBlock,
-  //         bidParams.expireBlock
-  //       );
-  //     await expect(tx).to.be.revertedWith("zAuction: auction expired");
-  //   });
-  //   it("Fails when the bid is below the set minimum bid", async () => {
-  //     const bidParams = {
-  //       auctionId: "4771690347",
-  //       bid: "2000000000000000000",
-  //       tokenId: "0x1",
-  //       minBid: "5000000000000000000",
-  //       startBlock: "0",
-  //       expireBlock: "999999999999",
-  //     };
+    const tx = zAuction
+      .connect(owner)
+      .acceptBid(
+        signature,
+        bidParams.auctionId,
+        bidder.address,
+        bidParams.bid,
+        bidParams.tokenId,
+        bidParams.minBid,
+        bidParams.startBlock,
+        bidParams.expireBlock
+      );
+    await expect(tx).to.be.revertedWith("zAuction: auction expired");
+  });
+  it("Fails when the bid is below the set minimum bid", async () => {
+    const bidParams = {
+      auctionId: "4771690347",
+      bid: "2000000000000000000",
+      tokenId: "0x1",
+      minBid: "5000000000000000000",
+      startBlock: "0",
+      expireBlock: "999999999999",
+    };
 
-  //     const bidToSign = await zAuction.createBid(
-  //       bidParams.auctionId,
-  //       bidParams.bid,
-  //       mockRegistrar.address,
-  //       bidParams.tokenId,
-  //       bidParams.minBid,
-  //       bidParams.startBlock,
-  //       bidParams.expireBlock
-  //     );
+    const bidToSign = await zAuction.createBid(
+      bidParams.auctionId,
+      bidParams.bid,
+      mockRegistrar.address,
+      bidParams.tokenId,
+      bidParams.minBid,
+      bidParams.startBlock,
+      bidParams.expireBlock
+    );
 
-  //     const signature = await bidder.signMessage(
-  //       ethers.utils.arrayify(bidToSign)
-  //     );
+    const signature = await bidder.signMessage(
+      ethers.utils.arrayify(bidToSign)
+    );
 
-  //     const tx = zAuction
-  //       .connect(owner)
-  //       .acceptBid(
-  //         signature,
-  //         bidParams.auctionId,
-  //         bidder.address,
-  //         bidParams.bid,
-  //         bidParams.tokenId,
-  //         bidParams.minBid,
-  //         bidParams.startBlock,
-  //         bidParams.expireBlock
-  //       );
-  //     await expect(tx).to.be.revertedWith(
-  //       "zAuction: cannot accept bid below min"
-  //     );
-  //   });
-  //   it("Fails when someone tries to accept their own bid", async () => {
-  //     const bidParams = {
-  //       auctionId: "4771690347",
-  //       bid: "2000000000000000000",
-  //       tokenId: "0x1",
-  //       minBid: "500000000",
-  //       startBlock: "0",
-  //       expireBlock: "999999999999",
-  //     };
+    const tx = zAuction
+      .connect(owner)
+      .acceptBid(
+        signature,
+        bidParams.auctionId,
+        bidder.address,
+        bidParams.bid,
+        bidParams.tokenId,
+        bidParams.minBid,
+        bidParams.startBlock,
+        bidParams.expireBlock
+      );
+    await expect(tx).to.be.revertedWith(
+      "zAuction: cannot accept bid below min"
+    );
+  });
+  it("Fails when someone tries to accept their own bid", async () => {
+    const bidParams = {
+      auctionId: "4771690347",
+      bid: "2000000000000000000",
+      tokenId: "0x1",
+      minBid: "500000000",
+      startBlock: "0",
+      expireBlock: "999999999999",
+    };
 
-  //     const bidToSign = await zAuction.createBid(
-  //       bidParams.auctionId,
-  //       bidParams.bid,
-  //       mockRegistrar.address,
-  //       bidParams.tokenId,
-  //       bidParams.minBid,
-  //       bidParams.startBlock,
-  //       bidParams.expireBlock
-  //     );
+    const bidToSign = await zAuction.createBid(
+      bidParams.auctionId,
+      bidParams.bid,
+      mockRegistrar.address,
+      bidParams.tokenId,
+      bidParams.minBid,
+      bidParams.startBlock,
+      bidParams.expireBlock
+    );
 
-  //     const signature = await bidder.signMessage(
-  //       ethers.utils.arrayify(bidToSign)
-  //     );
+    const signature = await bidder.signMessage(
+      ethers.utils.arrayify(bidToSign)
+    );
 
-  //     const tx = zAuction
-  //       .connect(owner)
-  //       .acceptBid(
-  //         signature,
-  //         bidParams.auctionId,
-  //         owner.address,
-  //         bidParams.bid,
-  //         bidParams.tokenId,
-  //         bidParams.minBid,
-  //         bidParams.startBlock,
-  //         bidParams.expireBlock
-  //       );
-  //     await expect(tx).to.be.revertedWith("zAuction: cannot sell to self");
-  //   });
-  //   it("Fails when we recover the incorrect bidder address", async () => {
-  //     const bidParams = {
-  //       auctionId: "4771690347",
-  //       bid: "2000000000000000000",
-  //       tokenId: "0x1",
-  //       minBid: "500000000",
-  //       startBlock: "0",
-  //       expireBlock: "999999999999",
-  //     };
+    const tx = zAuction
+      .connect(owner)
+      .acceptBid(
+        signature,
+        bidParams.auctionId,
+        owner.address,
+        bidParams.bid,
+        bidParams.tokenId,
+        bidParams.minBid,
+        bidParams.startBlock,
+        bidParams.expireBlock
+      );
+    await expect(tx).to.be.revertedWith("zAuction: cannot sell to self");
+  });
+  it("Fails when we recover the incorrect bidder address", async () => {
+    const bidParams = {
+      auctionId: "4771690347",
+      bid: "2000000000000000000",
+      tokenId: "0x1",
+      minBid: "500000000",
+      startBlock: "0",
+      expireBlock: "999999999999",
+    };
 
-  //     const bidToSign = await zAuction.createBid(
-  //       bidParams.auctionId,
-  //       bidParams.bid,
-  //       mockRegistrar.address,
-  //       bidParams.tokenId,
-  //       bidParams.minBid,
-  //       bidParams.startBlock,
-  //       bidParams.expireBlock
-  //     );
+    const bidToSign = await zAuction.createBid(
+      bidParams.auctionId,
+      bidParams.bid,
+      mockRegistrar.address,
+      bidParams.tokenId,
+      bidParams.minBid,
+      bidParams.startBlock,
+      bidParams.expireBlock
+    );
 
-  //     const signature = await bidder.signMessage(
-  //       ethers.utils.arrayify(bidToSign)
-  //     );
+    const signature = await bidder.signMessage(
+      ethers.utils.arrayify(bidToSign)
+    );
 
-  //     // The bidder address was used in signing, but the creator
-  //     // address is being sent and the recovery of that account will fail
-  //     const tx = zAuction
-  //       .connect(owner)
-  //       .acceptBid(
-  //         signature,
-  //         bidParams.auctionId,
-  //         creator.address,
-  //         bidParams.bid,
-  //         bidParams.tokenId,
-  //         bidParams.minBid,
-  //         bidParams.startBlock,
-  //         bidParams.expireBlock
-  //       );
-  //     await expect(tx).to.be.revertedWith("zAuction: recovered incorrect bidder");
-  //   });
-  //   it("Fails when a bid is already consumed", async () => {
-  //     const bidParams = {
-  //       auctionId: "4771690347",
-  //       bid: "2000000000000000000",
-  //       tokenId: "0x1",
-  //       minBid: "500000000",
-  //       startBlock: "0",
-  //       expireBlock: "999999999999",
-  //     };
+    // The bidder address was used in signing, but the creator
+    // address is being sent and the recovery of that account will fail
+    const tx = zAuction
+      .connect(owner)
+      .acceptBid(
+        signature,
+        bidParams.auctionId,
+        creator.address,
+        bidParams.bid,
+        bidParams.tokenId,
+        bidParams.minBid,
+        bidParams.startBlock,
+        bidParams.expireBlock
+      );
+    await expect(tx).to.be.revertedWith("zAuction: recovered incorrect bidder");
+  });
+  it("Fails when a bid is already consumed", async () => {
+    const bidParams = {
+      auctionId: "4771690347",
+      bid: "2000000000000000000",
+      tokenId: "0x1",
+      minBid: "500000000",
+      startBlock: "0",
+      expireBlock: "999999999999",
+    };
 
-  //     const bidToSign = await zAuction.createBid(
-  //       bidParams.auctionId,
-  //       bidParams.bid,
-  //       mockRegistrar.address,
-  //       bidParams.tokenId,
-  //       bidParams.minBid,
-  //       bidParams.startBlock,
-  //       bidParams.expireBlock
-  //     );
+    const bidToSign = await zAuction.createBid(
+      bidParams.auctionId,
+      bidParams.bid,
+      mockRegistrar.address,
+      bidParams.tokenId,
+      bidParams.minBid,
+      bidParams.startBlock,
+      bidParams.expireBlock
+    );
 
-  //     const signature = await bidder.signMessage(
-  //       ethers.utils.arrayify(bidToSign)
-  //     );
+    const signature = await bidder.signMessage(
+      ethers.utils.arrayify(bidToSign)
+    );
 
-  //     const tx = zAuction
-  //       .connect(owner)
-  //       .acceptBid(
-  //         signature,
-  //         bidParams.auctionId,
-  //         bidder.address,
-  //         bidParams.bid,
-  //         bidParams.tokenId,
-  //         bidParams.minBid,
-  //         bidParams.startBlock,
-  //         bidParams.expireBlock
-  //       );
+    const tx = zAuction
+      .connect(owner)
+      .acceptBid(
+        signature,
+        bidParams.auctionId,
+        bidder.address,
+        bidParams.bid,
+        bidParams.tokenId,
+        bidParams.minBid,
+        bidParams.startBlock,
+        bidParams.expireBlock
+      );
 
-  //     await expect(tx).to.be.revertedWith("zAuction: data already consumed");
-  //   });
-  //   it("Calculates minter royalty correctly", async () => {
-  //     // A percent with 5 decimals of precision
-  //     mockRegistrar.domainRoyaltyAmount.returns(1000000);
-  //     // Each WILD is 10^18, Bid is 15 WILD
-  //     const bid = ethers.utils.parseEther("15");
-  //     const id = "12345";
-  //     const royalty = await zAuction.calculateMinterRoyalty(bid, id);
-  //     const decimal = royalty.toString();
+    await expect(tx).to.be.revertedWith("zAuction: data already consumed");
+  });
+  it("Calculates minter royalty correctly", async () => {
+    // A percent with 5 decimals of precision
+    mockRegistrar.domainRoyaltyAmount.returns(1000000);
+    // Each WILD is 10^18, Bid is 15 WILD
+    const bid = ethers.utils.parseEther("15");
+    const id = "12345";
+    const royalty = await zAuction.calculateMinterRoyalty(bid, id);
+    const decimal = royalty.toString();
 
-  //     // 10% of bid
-  //     expect(decimal).to.equal(ethers.utils.parseEther("1.5"));
-  //   });
-  //   it("Calculates top level domain fee correctly at 10%", async () => {
-  //     // Each WILD is 10^18, Bid is 15 WILD
-  //     // A percent with 5 decimals of precision
-  //     const bid = ethers.utils.parseEther("15");
-  //     const id = "123245";
-  //     const callers = await ethers.getSigners();
-  //     const mainAccount = callers[0];
+    // 10% of bid
+    expect(decimal).to.equal(ethers.utils.parseEther("1.5"));
+  });
+  it("Calculates top level domain fee correctly at 10%", async () => {
+    // Each WILD is 10^18, Bid is 15 WILD
+    // A percent with 5 decimals of precision
+    const bid = ethers.utils.parseEther("15");
+    const id = "123245";
+    const callers = await ethers.getSigners();
+    const mainAccount = callers[0];
 
-  //     // mockRegistrar.domainRoyaltyAmount.returns(1000000);
-  //     mockRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
+    // mockRegistrar.domainRoyaltyAmount.returns(1000000);
+    mockRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
 
-  //     // Set fee for 10%
-  //     await zAuction.connect(mainAccount).setTopLevelDomainFee(id, 1000000);
-  //     let returnedFee = await zAuction.calculateTopLevelDomainFee(id, bid);
-  //     let fee = returnedFee.toString();
-  //     expect(fee).to.equal(ethers.utils.parseEther("1.5"));
-  //   });
-  //   it("Calculates top level domain fee correctly at 3%", async () => {
-  //     const bid = ethers.utils.parseEther("15");
-  //     const id = "123245";
-  //     const callers = await ethers.getSigners();
-  //     const mainAccount = callers[0];
+    // Set fee for 10%
+    await zAuction.connect(mainAccount).setTopLevelDomainFee(id, 1000000);
+    let returnedFee = await zAuction.calculateTopLevelDomainFee(id, bid);
+    let fee = returnedFee.toString();
+    expect(fee).to.equal(ethers.utils.parseEther("1.5"));
+  });
+  it("Calculates top level domain fee correctly at 3%", async () => {
+    const bid = ethers.utils.parseEther("15");
+    const id = "123245";
+    const callers = await ethers.getSigners();
+    const mainAccount = callers[0];
 
-  //     mockRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
+    mockRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
 
-  //     // Set fee for 3%
-  //     await zAuction.connect(mainAccount).setTopLevelDomainFee(id, 300000);
-  //     const returnedFee = await zAuction.calculateTopLevelDomainFee(id, bid);
-  //     const fee = returnedFee.toString();
-  //     expect(fee).to.equal(ethers.utils.parseEther("0.45"));
-  //   });
-  //   it("Calculates top level domain fee correctly at 1.23456%", async () => {
-  //     const bid = ethers.utils.parseEther("15");
-  //     const id = "123245";
-  //     const callers = await ethers.getSigners();
-  //     const mainAccount = callers[0];
+    // Set fee for 3%
+    await zAuction.connect(mainAccount).setTopLevelDomainFee(id, 300000);
+    const returnedFee = await zAuction.calculateTopLevelDomainFee(id, bid);
+    const fee = returnedFee.toString();
+    expect(fee).to.equal(ethers.utils.parseEther("0.45"));
+  });
+  it("Calculates top level domain fee correctly at 1.23456%", async () => {
+    const bid = ethers.utils.parseEther("15");
+    const id = "123245";
+    const callers = await ethers.getSigners();
+    const mainAccount = callers[0];
 
-  //     mockRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
+    mockRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
 
-  //     // Set fee for 1.23456%
-  //     await zAuction.connect(mainAccount).setTopLevelDomainFee(id, 123456);
-  //     const returnedFee = await zAuction.calculateTopLevelDomainFee(id, bid);
-  //     const fee = returnedFee.toString();
-  //     expect(fee).to.equal(ethers.utils.parseEther("0.185184"));
-  //   });
-  //   it("Calculates top level domain fee correctly at 9.99999%", async () => {
-  //     const bid = ethers.utils.parseEther("15");
-  //     const id = "123245";
-  //     const callers = await ethers.getSigners();
-  //     const mainAccount = callers[0];
+    // Set fee for 1.23456%
+    await zAuction.connect(mainAccount).setTopLevelDomainFee(id, 123456);
+    const returnedFee = await zAuction.calculateTopLevelDomainFee(id, bid);
+    const fee = returnedFee.toString();
+    expect(fee).to.equal(ethers.utils.parseEther("0.185184"));
+  });
+  it("Calculates top level domain fee correctly at 9.99999%", async () => {
+    const bid = ethers.utils.parseEther("15");
+    const id = "123245";
+    const callers = await ethers.getSigners();
+    const mainAccount = callers[0];
 
-  //     mockRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
+    mockRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
 
-  //     // Set fee for 9.99999%
-  //     await zAuction.connect(mainAccount).setTopLevelDomainFee(id, 999999);
-  //     const returnedFee = await zAuction.calculateTopLevelDomainFee(id, bid);
-  //     const fee = returnedFee.toString();
-  //     expect(fee).to.equal(ethers.utils.parseEther("1.4999985"));
-  //   });
-  //   it("Calculates top level domain fee correctly at 9.11111%", async () => {
-  //     const bid = ethers.utils.parseEther("15");
-  //     const id = "123245";
-  //     const callers = await ethers.getSigners();
-  //     const mainAccount = callers[0];
+    // Set fee for 9.99999%
+    await zAuction.connect(mainAccount).setTopLevelDomainFee(id, 999999);
+    const returnedFee = await zAuction.calculateTopLevelDomainFee(id, bid);
+    const fee = returnedFee.toString();
+    expect(fee).to.equal(ethers.utils.parseEther("1.4999985"));
+  });
+  it("Calculates top level domain fee correctly at 9.11111%", async () => {
+    const bid = ethers.utils.parseEther("15");
+    const id = "123245";
+    const callers = await ethers.getSigners();
+    const mainAccount = callers[0];
 
-  //     mockRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
+    mockRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
 
-  //     // Set fee for 9.11111%
-  //     await zAuction.connect(mainAccount).setTopLevelDomainFee(id, 911111);
-  //     const returnedFee = await zAuction.calculateTopLevelDomainFee(id, bid);
-  //     const fee = returnedFee.toString();
-  //     expect(fee).to.equal(ethers.utils.parseEther("1.3666665"));
-  //   });
-  //   it("Calculates top level domain fee correctly at 0.0001%", async () => {
-  //     const bid = ethers.utils.parseEther("15");
-  //     const id = "123245";
-  //     const callers = await ethers.getSigners();
-  //     const mainAccount = callers[0];
+    // Set fee for 9.11111%
+    await zAuction.connect(mainAccount).setTopLevelDomainFee(id, 911111);
+    const returnedFee = await zAuction.calculateTopLevelDomainFee(id, bid);
+    const fee = returnedFee.toString();
+    expect(fee).to.equal(ethers.utils.parseEther("1.3666665"));
+  });
+  it("Calculates top level domain fee correctly at 0.0001%", async () => {
+    const bid = ethers.utils.parseEther("15");
+    const id = "123245";
+    const callers = await ethers.getSigners();
+    const mainAccount = callers[0];
 
-  //     mockRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
+    mockRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
 
-  //     // Set fee for 0.0001%%
-  //     await zAuction.connect(mainAccount).setTopLevelDomainFee(id, 1);
-  //     const returnedFee = await zAuction.calculateTopLevelDomainFee(id, bid);
-  //     const fee = returnedFee.toString();
-  //     expect(fee).to.equal(ethers.utils.parseEther("0.0000015"));
-  //   });
-  //   it("Fails to set top level royalty when domain is not owned by caller", async () => {
-  //     // Fee is set to 10%
-  //     const fee = "1000000";
-  //     const id = "123245";
+    // Set fee for 0.0001%%
+    await zAuction.connect(mainAccount).setTopLevelDomainFee(id, 1);
+    const returnedFee = await zAuction.calculateTopLevelDomainFee(id, bid);
+    const fee = returnedFee.toString();
+    expect(fee).to.equal(ethers.utils.parseEther("0.0000015"));
+  });
+  it("Fails to set top level royalty when domain is not owned by caller", async () => {
+    // Fee is set to 10%
+    const fee = "1000000";
+    const id = "123245";
 
-  //     const callers = await ethers.getSigners();
-  //     const mainAccount = callers[0];
-  //     const otherAccount = callers[1];
+    const callers = await ethers.getSigners();
+    const mainAccount = callers[0];
+    const otherAccount = callers[1];
 
-  //     mockRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
+    mockRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
 
-  //     const tx = zAuction.connect(otherAccount).setTopLevelDomainFee(id, fee);
-  //     await expect(tx).to.be.revertedWith(
-  //       "zAuction: Cannot set fee on unowned domain"
-  //     );
-  //   });
-  //   it("Fails if the domain fee is set higher than 10%", async () => {
-  //     // Fee is set to 10%
-  //     const fee = "1000001";
-  //     const id = "123245";
+    const tx = zAuction.connect(otherAccount).setTopLevelDomainFee(id, fee);
+    await expect(tx).to.be.revertedWith(
+      "zAuction: Cannot set fee on unowned domain"
+    );
+  });
+  it("Fails if the domain fee is set higher than 10%", async () => {
+    // Fee is set to 10%
+    const fee = "1000001";
+    const id = "123245";
 
-  //     const callers = await ethers.getSigners();
-  //     const mainAccount = callers[0];
+    const callers = await ethers.getSigners();
+    const mainAccount = callers[0];
 
-  //     mockRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
-  //     const tx = zAuction.connect(mainAccount).setTopLevelDomainFee(id, fee);
+    mockRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
+    const tx = zAuction.connect(mainAccount).setTopLevelDomainFee(id, fee);
 
-  //     await expect(tx).to.be.revertedWith(
-  //       "zAuction: Cannot set a fee higher than 10%"
-  //     );
-  //   });
-  //   it("Fails if the domain fee is set lower than 0.0001%", async () => {
-  //     // Fee is set to 0%
-  //     const fee = "0";
-  //     const id = "123245";
+    await expect(tx).to.be.revertedWith(
+      "zAuction: Cannot set a fee higher than 10%"
+    );
+  });
+  it("Fails if the domain fee is set lower than 0.0001%", async () => {
+    // Fee is set to 0%
+    const fee = "0";
+    const id = "123245";
 
-  //     const callers = await ethers.getSigners();
-  //     const mainAccount = callers[0];
+    const callers = await ethers.getSigners();
+    const mainAccount = callers[0];
 
-  //     mockRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
-  //     const tx = zAuction.connect(mainAccount).setTopLevelDomainFee(id, fee);
+    mockRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
+    const tx = zAuction.connect(mainAccount).setTopLevelDomainFee(id, fee);
 
-  //     await expect(tx).to.be.revertedWith(
-  //       "zAuction: Cannot set a fee lower than 0.0001%"
-  //     );
-  //   });
-  //   it("Gets the top level parent of a domain that is already the top", async () => {
-  //     // Case where id given is already the top level domain id
-  //     mockRegistrar.parentOf.returns(0);
-  //     const id = "12345";
-  //     const topLevelId = await zAuction.topLevelDomainIdOf(id);
-  //     expect(topLevelId).to.equal(id);
-  //   });
-  //   it("Gets the top level parent when the id given is not already the top", async () => {
-  //     // Case where id given is not the top level domain id
-  //     mockRegistrar.parentOf.whenCalledWith("3").returns("2");
-  //     mockRegistrar.parentOf.whenCalledWith("2").returns("1");
-  //     mockRegistrar.parentOf.whenCalledWith("1").returns("0");
-  //     const id = "3";
-  //     const TopLevelId = await zAuction.topLevelDomainIdOf(id);
-  //     expect(TopLevelId).to.equal("1");
-  //   });
+    await expect(tx).to.be.revertedWith(
+      "zAuction: Cannot set a fee lower than 0.0001%"
+    );
+  });
+  it("Gets the top level parent of a domain that is already the top", async () => {
+    // Case where id given is already the top level domain id
+    mockRegistrar.parentOf.returns(0);
+    const id = "12345";
+    const topLevelId = await zAuction.topLevelDomainIdOf(id);
+    expect(topLevelId).to.equal(id);
+  });
+  it("Gets the top level parent when the id given is not already the top", async () => {
+    // Case where id given is not the top level domain id
+    mockRegistrar.parentOf.whenCalledWith("3").returns("2");
+    mockRegistrar.parentOf.whenCalledWith("2").returns("1");
+    mockRegistrar.parentOf.whenCalledWith("1").returns("0");
+    const id = "3";
+    const TopLevelId = await zAuction.topLevelDomainIdOf(id);
+    expect(TopLevelId).to.equal("1");
+  });
 });
