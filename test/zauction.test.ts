@@ -556,20 +556,19 @@ describe("zAuction Contract Tests", () => {
       "zAuction: Cannot set a fee higher than 10%"
     );
   });
-  it("Fails if the domain fee is set lower than 0.0001%", async () => {
-    // Fee is set to 0%
-    const fee = "0";
+  it("Fails if the domain fee is already set to that amount", async () => {
+    // Fee is set to 5%
+    const fee = "500000";
     const id = "123245";
 
     const callers = await ethers.getSigners();
     const mainAccount = callers[0];
 
     mockRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
+    await zAuction.connect(mainAccount).setTopLevelDomainFee(id, fee);
     const tx = zAuction.connect(mainAccount).setTopLevelDomainFee(id, fee);
 
-    await expect(tx).to.be.revertedWith(
-      "zAuction: Cannot set a fee lower than 0.0001%"
-    );
+    await expect(tx).to.be.revertedWith("zAuction: Amount is already set");
   });
   it("Gets the top level parent of a domain that is already the top", async () => {
     // Case where id given is already the top level domain id

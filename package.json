@@ -54,8 +54,5 @@
   },
   "name": "zauction",
   "version": "0.1.0",
-  "license": "MIT",
-  "dependencies": {
-    "sinon-chai": "^3.7.0"
-  }
+  "license": "MIT"
 }

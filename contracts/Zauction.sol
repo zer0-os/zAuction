@@ -119,15 +119,18 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     );
   }
 
-  // Amount given should be as a percent with 5 decimals of precision
-  // e.g. 10% is 1000000, 0.0001% is 1
+  /// Allows the owner of the given token to set the fee owed upon sale
+  /// Amount given should be as a percent with 5 decimals of precision
+  /// e.g. 10% (max) is 1000000, 0.0001% (min) is 1
+  /// @param id The id of the domain to update
+  /// @param amount The
   function setTopLevelDomainFee(uint256 id, uint256 amount) public {
     require(
       msg.sender == registrar.ownerOf(id),
       "zAuction: Cannot set fee on unowned domain"
     );
     require(amount <= 1000000, "zAuction: Cannot set a fee higher than 10%");
-    require(amount >= 1, "zAuction: Cannot set a fee lower than 0.0001%");
+    require(amount != topLevelDomainFee[id], "zAuction: Amount is already set");
     topLevelDomainFee[id] = amount;
   }
 
@@ -141,8 +144,6 @@ contract ZAuction is Initializable, OwnableUpgradeable {
 
     // Find what percent they've specified as a royalty
     uint256 fee = topLevelDomainFee[topLevelId];
-
-    // If not found
     if (fee == 0) return 0;
 
     uint256 calculatedFee = (bid * fee * 10**13) / (100 * 10**18);
@@ -160,10 +161,9 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     uint256 domainRoyalty = registrar.domainRoyaltyAmount(id);
     if (domainRoyalty == 0) return 0; // same here, 0 for 0% or 0 for not found?
 
-    // Pad with 18 zeroes for precision, 13 for domainRoyalty as already 5 decimal points captured
-    uint256 divisor = (100 * 10**18) / (domainRoyalty * 10**13);
-    uint256 calculatedRoyalty = (bid / divisor);
-    return calculatedRoyalty;
+    uint256 royalty = (bid * domainRoyalty * 10**13) / (100 * 10**18);
+
+    return royalty;
   }
 
   function createBid(
