@@ -119,6 +119,23 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     );
   }
 
+  /// Cancels an existing bid for an NFT by marking it as already consumed
+  /// so that it can never be fulfilled.
+  /// @param account The account that made the specific bid
+  /// @param auctionId The ID of the auction associated with that bid
+  function cancelBid(address account, uint256 auctionId) external {
+    require(
+      msg.sender == account,
+      "zAuction: Cannot cancel someone else's bid"
+    );
+    require(
+      !consumed[account][auctionId],
+      "zAuction: Cannot cancel an already consumed bid"
+    );
+
+    consumed[account][auctionId] = true;
+  }
+
   /// Allows the owner of the given token to set the fee owed upon sale
   /// Amount given should be as a percent with 5 decimals of precision
   /// e.g. 10% (max) is 1000000, 0.0001% (min) is 1
@@ -298,5 +315,9 @@ contract ZAuction is Initializable, OwnableUpgradeable {
 
     // Bidder -> topLevel Owner, pay top level owner fee
     SafeERC20.safeTransferFrom(token, bidder, topLevelOwner, topLevelFee);
+  }
+
+  function setConsumed(address account, uint256 auctionId) private {
+    consumed[account][auctionId] = true;
   }
 }

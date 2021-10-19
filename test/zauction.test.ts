@@ -1,6 +1,11 @@
 import * as chai from "chai";
 import { ethers } from "hardhat";
-import { FakeContract, smock } from "@defi-wonderland/smock";
+import {
+  FakeContract,
+  MockContract,
+  MockContractFactory,
+  smock
+} from "@defi-wonderland/smock";
 
 import {
   IERC20,
@@ -10,7 +15,7 @@ import {
   ZAuction,
   ZAuction__factory,
 } from "../typechain";
-import { BigNumber } from "ethers";
+import { BigNumber, BigNumberish } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 
@@ -21,8 +26,10 @@ describe("zAuction Contract Tests", () => {
   let bidder: SignerWithAddress;
   let owner: SignerWithAddress;
   let zAuction: ZAuction;
-  let mockERC20Token: FakeContract<IERC20>;
-  let mockRegistrar: FakeContract<IRegistrar>;
+  let fakeERC20Token: FakeContract<IERC20>;
+  let fakeRegistrar: FakeContract<IRegistrar>;
+  let mockZauctionFactory: MockContractFactory<ZAuction__factory>;
+  let mockZauction: MockContract<ZAuction>;
 
   before(async () => {
     const signers: SignerWithAddress[] = await ethers.getSigners();
@@ -30,19 +37,21 @@ describe("zAuction Contract Tests", () => {
     bidder = signers[1];
     owner = signers[2];
 
-    mockERC20Token = await smock.fake(IERC20__factory.abi);
-    mockRegistrar = await smock.fake(IRegistrar__factory.abi);
+    fakeERC20Token = await smock.fake(IERC20__factory.abi);
+    fakeRegistrar = await smock.fake(IRegistrar__factory.abi);
+    mockZauctionFactory = await smock.mock<ZAuction__factory>("ZAuction");
+    mockZauction = await mockZauctionFactory.deploy();
 
     // Royalty is fixed at 10% unless otherwise specified
-    mockRegistrar.domainRoyaltyAmount.returns(1000000);
+    fakeRegistrar.domainRoyaltyAmount.returns(1000000);
 
     const zAuctionFactory = new ZAuction__factory(creator);
     zAuction = await zAuctionFactory.deploy();
     const legacyZAuctionKovanAddress =
       "0x18A804a028aAf1F30082E91d2947734961Dd7f89";
     await zAuction.initialize(
-      mockERC20Token.address,
-      mockRegistrar.address,
+      fakeERC20Token.address,
+      fakeRegistrar.address,
       legacyZAuctionKovanAddress
     );
   });
@@ -67,19 +76,19 @@ describe("zAuction Contract Tests", () => {
     };
 
     // Minter royalty is set at 5%
-    mockRegistrar.domainRoyaltyAmount
+    fakeRegistrar.domainRoyaltyAmount
       .whenCalledWith(bidParams.tokenId)
       .returns("500000");
 
     // Top level owner fee is set at 4.44%
-    mockRegistrar.parentOf
+    fakeRegistrar.parentOf
       .whenCalledWith(bidParams.tokenId)
       .returns(topLevelId);
-    mockRegistrar.parentOf.whenCalledWith(topLevelId).returns("0");
-    mockRegistrar.ownerOf
+    fakeRegistrar.parentOf.whenCalledWith(topLevelId).returns("0");
+    fakeRegistrar.ownerOf
       .whenCalledWith(topLevelId)
       .returns(topLevelOwner.address);
-    mockRegistrar.minterOf.whenCalledWith(topLevelId).returns(minter.address);
+    fakeRegistrar.minterOf.whenCalledWith(topLevelId).returns(minter.address);
 
     await zAuction
       .connect(topLevelOwner)
@@ -88,7 +97,7 @@ describe("zAuction Contract Tests", () => {
     const bidToSign = await zAuction.createBid(
       bidParams.auctionId,
       bidParams.bid,
-      mockRegistrar.address,
+      fakeRegistrar.address,
       bidParams.tokenId,
       bidParams.minBid,
       bidParams.startBlock,
@@ -97,7 +106,7 @@ describe("zAuction Contract Tests", () => {
 
     const signature = await buyer.signMessage(ethers.utils.arrayify(bidToSign));
 
-    mockERC20Token.transferFrom.returns(true);
+    fakeERC20Token.transferFrom.returns(true);
     await zAuction
       .connect(seller)
       .acceptBid(
@@ -115,37 +124,37 @@ describe("zAuction Contract Tests", () => {
     const royalty = ethers.utils.parseEther("6.150");
     const fee = ethers.utils.parseEther("5.4612");
 
-    expect(mockRegistrar.domainRoyaltyAmount).to.have.been.calledWith(
+    expect(fakeRegistrar.domainRoyaltyAmount).to.have.been.calledWith(
       topLevelId
     );
-    expect(mockRegistrar.parentOf).to.have.been.calledWith(bidParams.tokenId);
-    expect(mockRegistrar.parentOf).to.have.been.calledWith(topLevelId);
-    expect(mockRegistrar.ownerOf).to.have.been.calledWith(topLevelId);
+    expect(fakeRegistrar.parentOf).to.have.been.calledWith(bidParams.tokenId);
+    expect(fakeRegistrar.parentOf).to.have.been.calledWith(topLevelId);
+    expect(fakeRegistrar.ownerOf).to.have.been.calledWith(topLevelId);
 
     // Bidder -> Owner, pay transaction
-    expect(mockERC20Token.transferFrom).calledWith(
+    expect(fakeERC20Token.transferFrom).calledWith(
       buyer.address,
       seller.address,
       transactionPayment
     );
 
     // Bidder -> Minter, pay minter royalty
-    expect(mockERC20Token.transferFrom).to.have.been.calledWith(
+    expect(fakeERC20Token.transferFrom).to.have.been.calledWith(
       buyer.address,
       minter.address,
       royalty
     );
 
     // Bidder -> topLevel Owner, pay top level owner fee
-    expect(mockERC20Token.transferFrom).to.have.been.calledWith(
+    expect(fakeERC20Token.transferFrom).to.have.been.calledWith(
       buyer.address,
       topLevelOwner.address,
       fee
     );
 
-    mockRegistrar.domainRoyaltyAmount.reset();
-    mockRegistrar.parentOf.reset();
-    mockRegistrar.ownerOf.reset();
+    fakeRegistrar.domainRoyaltyAmount.reset();
+    fakeRegistrar.parentOf.reset();
+    fakeRegistrar.ownerOf.reset();
   });
 
   it("Successfully accepts a bid", async () => {
@@ -161,7 +170,7 @@ describe("zAuction Contract Tests", () => {
     const bidToSign = await zAuction.createBid(
       bidParams.auctionId,
       bidParams.bid,
-      mockRegistrar.address,
+      fakeRegistrar.address,
       bidParams.tokenId,
       bidParams.minBid,
       bidParams.startBlock,
@@ -175,7 +184,7 @@ describe("zAuction Contract Tests", () => {
     // In the case of a resale, the original creator
     // of an NFT is not necessarily the same as the
     // person who is the owner
-    mockERC20Token.transferFrom.returns(true);
+    fakeERC20Token.transferFrom.returns(true);
 
     // Note added "signature" and "bidder.address" props
     await zAuction
@@ -204,7 +213,7 @@ describe("zAuction Contract Tests", () => {
     const bidToSign = await zAuction.createBid(
       bidParams.auctionId,
       bidParams.bid,
-      mockRegistrar.address,
+      fakeRegistrar.address,
       bidParams.tokenId,
       bidParams.minBid,
       bidParams.startBlock,
@@ -242,7 +251,7 @@ describe("zAuction Contract Tests", () => {
     const bidToSign = await zAuction.createBid(
       bidParams.auctionId,
       bidParams.bid,
-      mockRegistrar.address,
+      fakeRegistrar.address,
       bidParams.tokenId,
       bidParams.minBid,
       bidParams.startBlock,
@@ -280,7 +289,7 @@ describe("zAuction Contract Tests", () => {
     const bidToSign = await zAuction.createBid(
       bidParams.auctionId,
       bidParams.bid,
-      mockRegistrar.address,
+      fakeRegistrar.address,
       bidParams.tokenId,
       bidParams.minBid,
       bidParams.startBlock,
@@ -320,7 +329,7 @@ describe("zAuction Contract Tests", () => {
     const bidToSign = await zAuction.createBid(
       bidParams.auctionId,
       bidParams.bid,
-      mockRegistrar.address,
+      fakeRegistrar.address,
       bidParams.tokenId,
       bidParams.minBid,
       bidParams.startBlock,
@@ -358,7 +367,7 @@ describe("zAuction Contract Tests", () => {
     const bidToSign = await zAuction.createBid(
       bidParams.auctionId,
       bidParams.bid,
-      mockRegistrar.address,
+      fakeRegistrar.address,
       bidParams.tokenId,
       bidParams.minBid,
       bidParams.startBlock,
@@ -398,7 +407,7 @@ describe("zAuction Contract Tests", () => {
     const bidToSign = await zAuction.createBid(
       bidParams.auctionId,
       bidParams.bid,
-      mockRegistrar.address,
+      fakeRegistrar.address,
       bidParams.tokenId,
       bidParams.minBid,
       bidParams.startBlock,
@@ -426,7 +435,7 @@ describe("zAuction Contract Tests", () => {
   });
   it("Calculates minter royalty correctly", async () => {
     // A percent with 5 decimals of precision
-    mockRegistrar.domainRoyaltyAmount.returns(1000000);
+    fakeRegistrar.domainRoyaltyAmount.returns(1000000);
     // Each WILD is 10^18, Bid is 15 WILD
     const bid = ethers.utils.parseEther("15");
     const id = "12345";
@@ -445,7 +454,7 @@ describe("zAuction Contract Tests", () => {
     const mainAccount = callers[0];
 
     // mockRegistrar.domainRoyaltyAmount.returns(1000000);
-    mockRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
+    fakeRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
 
     // Set fee for 10%
     await zAuction.connect(mainAccount).setTopLevelDomainFee(id, 1000000);
@@ -459,7 +468,7 @@ describe("zAuction Contract Tests", () => {
     const callers = await ethers.getSigners();
     const mainAccount = callers[0];
 
-    mockRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
+    fakeRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
 
     // Set fee for 3%
     await zAuction.connect(mainAccount).setTopLevelDomainFee(id, 300000);
@@ -473,7 +482,7 @@ describe("zAuction Contract Tests", () => {
     const callers = await ethers.getSigners();
     const mainAccount = callers[0];
 
-    mockRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
+    fakeRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
 
     // Set fee for 1.23456%
     await zAuction.connect(mainAccount).setTopLevelDomainFee(id, 123456);
@@ -487,7 +496,7 @@ describe("zAuction Contract Tests", () => {
     const callers = await ethers.getSigners();
     const mainAccount = callers[0];
 
-    mockRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
+    fakeRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
 
     // Set fee for 9.99999%
     await zAuction.connect(mainAccount).setTopLevelDomainFee(id, 999999);
@@ -501,7 +510,7 @@ describe("zAuction Contract Tests", () => {
     const callers = await ethers.getSigners();
     const mainAccount = callers[0];
 
-    mockRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
+    fakeRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
 
     // Set fee for 9.11111%
     await zAuction.connect(mainAccount).setTopLevelDomainFee(id, 911111);
@@ -515,7 +524,7 @@ describe("zAuction Contract Tests", () => {
     const callers = await ethers.getSigners();
     const mainAccount = callers[0];
 
-    mockRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
+    fakeRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
 
     // Set fee for 0.0001%%
     await zAuction.connect(mainAccount).setTopLevelDomainFee(id, 1);
@@ -532,7 +541,7 @@ describe("zAuction Contract Tests", () => {
     const mainAccount = callers[0];
     const otherAccount = callers[1];
 
-    mockRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
+    fakeRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
 
     const tx = zAuction.connect(otherAccount).setTopLevelDomainFee(id, fee);
     await expect(tx).to.be.revertedWith(
@@ -547,7 +556,7 @@ describe("zAuction Contract Tests", () => {
     const callers = await ethers.getSigners();
     const mainAccount = callers[0];
 
-    mockRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
+    fakeRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
     const tx = zAuction.connect(mainAccount).setTopLevelDomainFee(id, fee);
 
     await expect(tx).to.be.revertedWith(
@@ -562,7 +571,7 @@ describe("zAuction Contract Tests", () => {
     const callers = await ethers.getSigners();
     const mainAccount = callers[0];
 
-    mockRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
+    fakeRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
     await zAuction.connect(mainAccount).setTopLevelDomainFee(id, fee);
     const tx = zAuction.connect(mainAccount).setTopLevelDomainFee(id, fee);
 
@@ -570,18 +579,36 @@ describe("zAuction Contract Tests", () => {
   });
   it("Gets the top level parent of a domain that is already the top", async () => {
     // Case where id given is already the top level domain id
-    mockRegistrar.parentOf.returns(0);
+    fakeRegistrar.parentOf.returns(0);
     const id = "12345";
     const topLevelId = await zAuction.topLevelDomainIdOf(id);
     expect(topLevelId).to.equal(id);
   });
   it("Gets the top level parent when the id given is not already the top", async () => {
     // Case where id given is not the top level domain id
-    mockRegistrar.parentOf.whenCalledWith("3").returns("2");
-    mockRegistrar.parentOf.whenCalledWith("2").returns("1");
-    mockRegistrar.parentOf.whenCalledWith("1").returns("0");
+    fakeRegistrar.parentOf.whenCalledWith("3").returns("2");
+    fakeRegistrar.parentOf.whenCalledWith("2").returns("1");
+    fakeRegistrar.parentOf.whenCalledWith("1").returns("0");
     const id = "3";
     const TopLevelId = await zAuction.topLevelDomainIdOf(id);
     expect(TopLevelId).to.equal("1");
   });
+  it("Fails to cancel a bid when the caller is not the creator of that bid", async () => {
+    const callers = await ethers.getSigners();
+    const accountOne = callers[0];
+    const accountTwo = callers[1];
+
+    const tx = zAuction.connect(accountOne).cancelBid(accountTwo.address, "123");
+
+    await expect(tx).to.be.revertedWith("zAuction: Cannot cancel someone else's bid")
+  });
+  it("Fails to cancel a bid when it has already been consumed", async () => {
+    mockZauction.setVariable("consumed", {
+      [bidder.address]: {
+        "12345": true
+      }
+    });
+    const tx = mockZauction.connect(bidder).cancelBid(bidder.address, "12345");
+    await expect(tx).to.be.revertedWith("zAuction: Cannot cancel an already consumed bid")
+  })
 });
