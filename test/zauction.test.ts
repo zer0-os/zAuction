@@ -15,7 +15,7 @@ import {
   ZAuction,
   ZAuction__factory,
 } from "../typechain";
-import { BigNumber, BigNumberish } from "ethers";
+import { BigNumber } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 

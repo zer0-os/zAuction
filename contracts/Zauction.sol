@@ -316,8 +316,3 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     // Bidder -> topLevel Owner, pay top level owner fee
     SafeERC20.safeTransferFrom(token, bidder, topLevelOwner, topLevelFee);
   }
-
-  function setConsumed(address account, uint256 auctionId) private {
-    consumed[account][auctionId] = true;
-  }
-}
