@@ -31,6 +31,11 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     uint256 expireBlock
   );
 
+  event BidCancelled(
+    uint256 auctionId,
+    address indexed bidder
+  );
+
   function initialize(
     IERC20 tokenAddress,
     IRegistrar registrarAddress,
@@ -134,6 +139,8 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     );
 
     consumed[account][auctionId] = true;
+
+    emit BidCanceled(auctionId, account);
   }
 
   /// Allows the owner of the given token to set the fee owed upon sale
