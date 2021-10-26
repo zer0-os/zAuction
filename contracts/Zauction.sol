@@ -31,10 +31,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     uint256 expireBlock
   );
 
-  event BidCancelled(
-    uint256 auctionId,
-    address indexed bidder
-  );
+  event BidCancelled(uint256 auctionId, address indexed bidder);
 
   function initialize(
     IERC20 tokenAddress,
@@ -140,7 +137,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
 
     consumed[account][auctionId] = true;
 
-    emit BidCanceled(auctionId, account);
+    emit BidCancelled(auctionId, account);
   }
 
   /// Allows the owner of the given token to set the fee owed upon sale
@@ -183,14 +180,15 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   /// @param id The id of the minted domain
   function calculateMinterRoyalty(uint256 id, uint256 bid)
     public
-    view
+    pure
     returns (uint256)
   {
     require(id > 0, "zAuction: must provide a valid id");
     // Returns with 5 decimal points of accuracy
-    uint256 domainRoyalty = registrar.domainRoyaltyAmount(id);
-    if (domainRoyalty == 0) return 0; // same here, 0 for 0% or 0 for not found?
+    // uint256 domainRoyalty = registrar.domainRoyaltyAmount(id);
+    // if (domainRoyalty == 0) return 0; // same here, 0 for 0% or 0 for not found?
 
+    uint256 domainRoyalty = 10000;
     uint256 royalty = (bid * domainRoyalty * 10**13) / (100 * 10**18);
 
     return royalty;
@@ -323,3 +321,4 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     // Bidder -> topLevel Owner, pay top level owner fee
     SafeERC20.safeTransferFrom(token, bidder, topLevelOwner, topLevelFee);
   }
+}
