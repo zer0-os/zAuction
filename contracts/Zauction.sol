@@ -184,7 +184,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     returns (uint256)
   {
     require(id > 0, "zAuction: must provide a valid id");
-    uint256 domainRoyalty = 10000;
+    uint256 domainRoyalty = 1000000;
     uint256 royalty = (bid * domainRoyalty * 10**13) / (100 * 10**18);
 
     return royalty;
