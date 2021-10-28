@@ -31,6 +31,16 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     uint256 expireBlock
   );
 
+  event BuyNow(
+    uint256 auctionId,
+    address indexed buyer,
+    address indexed seller,
+    uint256 amount,
+    address nftAddress,
+    uint256 tokenId,
+    uint256 expireBlock
+  );
+
   event BidCancelled(uint256 auctionId, address indexed bidder);
 
   function initialize(
@@ -115,6 +125,72 @@ contract ZAuction is Initializable, OwnableUpgradeable {
       bidder,
       msg.sender,
       bid,
+      address(registrar),
+      tokenId,
+      expireBlock
+    );
+  }
+
+  /// recovers buyer's signature based on seller's proposed data and, if bid data hash matches the message hash, transfers nft and payment
+  /// @param signature type encoded message signed by the buyer
+  /// @param auctionId unique per address auction identifier chosen by seller
+  /// @param buyer address of who the seller says the buyer is, for confirmation of the recovered buyer
+  /// @param amount token amount of sale
+  /// @param buyNowPrice listed price by seller
+  /// @param tokenId token id we are transferring
+  /// @param startBlock block number at which acceptBid starts working
+  /// @param expireBlock block number at which acceptBid stops working
+  function buyNow(
+    bytes memory signature,
+    uint256 auctionId,
+    address buyer,
+    uint256 amount,
+    uint256 buyNowPrice,
+    uint256 tokenId,
+    uint256 startBlock,
+    uint256 expireBlock
+  ) external {
+    require(startBlock <= block.number, "zAuction: auction hasn't started");
+    require(expireBlock > block.number, "zAuction: auction expired");
+    require(amount != buyNowPrice, "zAuction: wrong sale price");
+    require(buyer != msg.sender, "zAuction: cannot sell to self");
+
+    require(!consumed[buyer][auctionId], "zAuction: data already consumed");
+
+    bytes32 data = createBuyNowOrder(
+      auctionId,
+      amount,
+      address(registrar),
+      tokenId,
+      buyNowPrice,
+      startBlock,
+      expireBlock
+    );
+
+    require(
+      buyer == recover(toEthSignedMessageHash(data), signature),
+      "zAuction: recovered incorrect buyer"
+    );
+
+    uint256 topLevelId = topLevelDomainIdCache[tokenId];
+    if (topLevelId == 0) {
+      topLevelId = topLevelDomainIdOf(tokenId);
+      topLevelDomainIdCache[tokenId] = topLevelId;
+    }
+
+    consumed[buyer][auctionId] = true;
+
+    // Transfer payment, royalty to minter, and fee to topLevel domain
+    paymentTransfers(buyer, amount, msg.sender, topLevelId, tokenId);
+
+    // Owner -> Buyer, send NFT
+    registrar.safeTransferFrom(msg.sender, buyer, tokenId);
+
+    emit BuyNow(
+      auctionId,
+      buyer,
+      msg.sender,
+      amount,
       address(registrar),
       tokenId,
       expireBlock
@@ -216,6 +292,39 @@ contract ZAuction is Initializable, OwnableUpgradeable {
         nftAddress,
         tokenId,
         minbid,
+        startBlock,
+        expireBlock
+      )
+    );
+    return data;
+  }
+
+  /// Create a buy now object hashed with the current contract address
+  /// @param auctionId unique per address auction identifier chosen by seller
+  /// @param amount token amount offered
+  /// @param nftAddress address of the nft contract
+  /// @param tokenId token id we are transferring
+  /// @param price token amount of item listed for sale
+  /// @param startBlock block number at which acceptBid starts working
+  /// @param expireBlock block number at which acceptBid stops working
+  function createBuyNowOrder(
+    uint256 auctionId,
+    uint256 amount,
+    address nftAddress,
+    uint256 tokenId,
+    uint256 price,
+    uint256 startBlock,
+    uint256 expireBlock
+  ) public view returns (bytes32 data) {
+    data = keccak256(
+      abi.encode(
+        auctionId,
+        address(this),
+        block.chainid,
+        amount,
+        nftAddress,
+        tokenId,
+        price,
         startBlock,
         expireBlock
       )
