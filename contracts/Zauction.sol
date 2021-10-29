@@ -13,6 +13,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
 
   IERC20 public token;
   IRegistrar public registrar;
+  mapping(uint256 => uint256) public buyPrice;
 
   // Original zAuction contract address for backward compatibility
   address legacyZAuction;
@@ -131,44 +132,49 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     );
   }
 
+  function setBuyPrice(uint256 amount, uint256 tokenId) external {
+    address owner = registrar.ownerOf(tokenId);
+    require(msg.sender == owner, "zAuction: only owner can set price");
+    buyPrice[tokenId] = amount;
+  }
+
   /// recovers buyer's signature based on seller's proposed data and, if bid data hash matches the message hash, transfers nft and payment
   /// @param signature type encoded message signed by the buyer
   /// @param auctionId unique per address auction identifier chosen by seller
-  /// @param buyer address of who the seller says the buyer is, for confirmation of the recovered buyer
   /// @param amount token amount of sale
-  /// @param buyNowPrice listed price by seller
   /// @param tokenId token id we are transferring
   /// @param startBlock block number at which acceptBid starts working
   /// @param expireBlock block number at which acceptBid stops working
   function buyNow(
     bytes memory signature,
     uint256 auctionId,
-    address buyer,
     uint256 amount,
-    uint256 buyNowPrice,
     uint256 tokenId,
     uint256 startBlock,
     uint256 expireBlock
   ) external {
     require(startBlock <= block.number, "zAuction: auction hasn't started");
     require(expireBlock > block.number, "zAuction: auction expired");
-    require(amount != buyNowPrice, "zAuction: wrong sale price");
-    require(buyer != msg.sender, "zAuction: cannot sell to self");
+    require(amount == buyPrice[tokenId], "zAuction: wrong sale price");
+    address seller = registrar.ownerOf(tokenId);
+    require(msg.sender != seller, "zAuction: cannot sell to self");
 
-    require(!consumed[buyer][auctionId], "zAuction: data already consumed");
+    require(
+      !consumed[msg.sender][auctionId],
+      "zAuction: data already consumed"
+    );
 
     bytes32 data = createBuyNowOrder(
       auctionId,
       amount,
       address(registrar),
       tokenId,
-      buyNowPrice,
       startBlock,
       expireBlock
     );
 
     require(
-      buyer == recover(toEthSignedMessageHash(data), signature),
+      msg.sender == recover(toEthSignedMessageHash(data), signature),
       "zAuction: recovered incorrect buyer"
     );
 
@@ -178,18 +184,18 @@ contract ZAuction is Initializable, OwnableUpgradeable {
       topLevelDomainIdCache[tokenId] = topLevelId;
     }
 
-    consumed[buyer][auctionId] = true;
+    consumed[msg.sender][auctionId] = true;
 
     // Transfer payment, royalty to minter, and fee to topLevel domain
-    paymentTransfers(buyer, amount, msg.sender, topLevelId, tokenId);
+    paymentTransfers(msg.sender, amount, seller, topLevelId, tokenId);
 
-    // Owner -> Buyer, send NFT
-    registrar.safeTransferFrom(msg.sender, buyer, tokenId);
+    // Owner -> message sender, send NFT
+    registrar.safeTransferFrom(seller, msg.sender, tokenId);
 
     emit BuyNow(
       auctionId,
-      buyer,
       msg.sender,
+      seller,
       amount,
       address(registrar),
       tokenId,
@@ -304,7 +310,6 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   /// @param amount token amount offered
   /// @param nftAddress address of the nft contract
   /// @param tokenId token id we are transferring
-  /// @param price token amount of item listed for sale
   /// @param startBlock block number at which acceptBid starts working
   /// @param expireBlock block number at which acceptBid stops working
   function createBuyNowOrder(
@@ -312,7 +317,6 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     uint256 amount,
     address nftAddress,
     uint256 tokenId,
-    uint256 price,
     uint256 startBlock,
     uint256 expireBlock
   ) public view returns (bytes32 data) {
@@ -324,7 +328,6 @@ contract ZAuction is Initializable, OwnableUpgradeable {
         amount,
         nftAddress,
         tokenId,
-        price,
         startBlock,
         expireBlock
       )
