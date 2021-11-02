@@ -17,6 +17,12 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   // Original zAuction contract address for backward compatibility
   address legacyZAuction;
 
+  struct Listing {
+    uint256 price;
+    address holder;
+  }
+
+  mapping(uint256 => Listing) public priceInfo;
   mapping(address => mapping(uint256 => bool)) public consumed;
   mapping(uint256 => uint256) public topLevelDomainIdCache;
   mapping(uint256 => uint256) public topLevelDomainFee;
@@ -31,7 +37,24 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     uint256 expireBlock
   );
 
+  event DomainSold(
+    address indexed buyer,
+    address indexed seller,
+    uint256 amount,
+    address nftAddress,
+    uint256 indexed tokenId
+  );
+
   event BidCancelled(uint256 auctionId, address indexed bidder);
+
+  function getTopLevelId(uint256 tokenId) private returns (uint256) {
+    uint256 topLevelId = topLevelDomainIdCache[tokenId];
+    if (topLevelId == 0) {
+      topLevelId = topLevelDomainIdOf(tokenId);
+      topLevelDomainIdCache[tokenId] = topLevelId;
+    }
+    return topLevelId;
+  }
 
   function initialize(
     IERC20 tokenAddress,
@@ -96,16 +119,10 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     }
     require(!consumed[bidder][auctionId], "zAuction: data already consumed");
 
-    uint256 topLevelId = topLevelDomainIdCache[tokenId];
-    if (topLevelId == 0) {
-      topLevelId = topLevelDomainIdOf(tokenId);
-      topLevelDomainIdCache[tokenId] = topLevelId;
-    }
-
     consumed[bidder][auctionId] = true;
 
     // Transfer payment, royalty to minter, and fee to topLevel domain
-    paymentTransfers(bidder, bid, msg.sender, topLevelId, tokenId);
+    paymentTransfers(bidder, bid, msg.sender, getTopLevelId(tokenId), tokenId);
 
     // Owner -> Bidder, send NFT
     registrar.safeTransferFrom(msg.sender, bidder, tokenId);
@@ -119,6 +136,44 @@ contract ZAuction is Initializable, OwnableUpgradeable {
       tokenId,
       expireBlock
     );
+  }
+
+  function setBuyPrice(uint256 amount, uint256 tokenId) external {
+    address owner = registrar.ownerOf(tokenId);
+    require(msg.sender == owner, "zAuction: only owner can set price");
+    require(
+      priceInfo[tokenId].price != amount,
+      "zAuction: listing already exists"
+    );
+    priceInfo[tokenId] = Listing(amount, owner);
+  }
+
+  /// recovers buyer's signature based on seller's proposed data and, if bid data hash matches the message hash, transfers nft and payment
+  /// @param amount token amount of sale
+  /// @param tokenId token id we are transferring
+  function buyNow(uint256 amount, uint256 tokenId) external {
+    require(amount == priceInfo[tokenId].price, "zAuction: wrong sale price");
+    address seller = registrar.ownerOf(tokenId);
+    require(msg.sender != seller, "zAuction: cannot sell to self");
+    require(
+      priceInfo[tokenId].holder == seller,
+      "zAuction: not listed for sale"
+    );
+    require(priceInfo[tokenId].price != 0, "zAuction: item not for sale");
+
+    // Transfer payment, royalty to minter, and fee to topLevel domain
+    paymentTransfers(
+      msg.sender,
+      amount,
+      seller,
+      getTopLevelId(tokenId),
+      tokenId
+    );
+
+    // Owner -> message sender, send NFT
+    registrar.safeTransferFrom(seller, msg.sender, tokenId);
+
+    emit DomainSold(msg.sender, seller, amount, address(registrar), tokenId);
   }
 
   /// Cancels an existing bid for an NFT by marking it as already consumed
