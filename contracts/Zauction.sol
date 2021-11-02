@@ -42,8 +42,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     address indexed seller,
     uint256 amount,
     address nftAddress,
-    uint256 indexed tokenId,
-    uint256 expireBlock
+    uint256 indexed tokenId
   );
 
   event BidCancelled(uint256 auctionId, address indexed bidder);
@@ -142,28 +141,23 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   function setBuyPrice(uint256 amount, uint256 tokenId) external {
     address owner = registrar.ownerOf(tokenId);
     require(msg.sender == owner, "zAuction: only owner can set price");
+    require(
+      priceInfo[tokenId].price != amount,
+      "zAuction: listing already exists"
+    );
     priceInfo[tokenId] = Listing(amount, owner);
   }
 
   /// recovers buyer's signature based on seller's proposed data and, if bid data hash matches the message hash, transfers nft and payment
   /// @param amount token amount of sale
   /// @param tokenId token id we are transferring
-  /// @param startBlock block number at which acceptBid starts working
-  /// @param expireBlock block number at which acceptBid stops working
-  function buyNow(
-    uint256 amount,
-    uint256 tokenId,
-    uint256 startBlock,
-    uint256 expireBlock
-  ) external {
-    require(startBlock <= block.number, "zAuction: sale hasn't started");
-    require(expireBlock > block.number, "zAuction: sale expired");
+  function buyNow(uint256 amount, uint256 tokenId) external {
     require(amount == priceInfo[tokenId].price, "zAuction: wrong sale price");
     address seller = registrar.ownerOf(tokenId);
     require(msg.sender != seller, "zAuction: cannot sell to self");
     require(
       priceInfo[tokenId].holder == seller,
-      "zAuction: not listed by holder"
+      "zAuction: not listed for sale"
     );
     require(priceInfo[tokenId].price != 0, "zAuction: item not for sale");
 
@@ -179,14 +173,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     // Owner -> message sender, send NFT
     registrar.safeTransferFrom(seller, msg.sender, tokenId);
 
-    emit DomainSold(
-      msg.sender,
-      seller,
-      amount,
-      address(registrar),
-      tokenId,
-      expireBlock
-    );
+    emit DomainSold(msg.sender, seller, amount, address(registrar), tokenId);
   }
 
   /// Cancels an existing bid for an NFT by marking it as already consumed
@@ -284,33 +271,6 @@ contract ZAuction is Initializable, OwnableUpgradeable {
         nftAddress,
         tokenId,
         minbid,
-        startBlock,
-        expireBlock
-      )
-    );
-    return data;
-  }
-
-  /// Create a buy now object hashed with the current contract address
-  /// @param amount token amount offered
-  /// @param nftAddress address of the nft contract
-  /// @param tokenId token id we are transferring
-  /// @param startBlock block number at which acceptBid starts working
-  /// @param expireBlock block number at which acceptBid stops working
-  function createBuyNowOrder(
-    uint256 amount,
-    address nftAddress,
-    uint256 tokenId,
-    uint256 startBlock,
-    uint256 expireBlock
-  ) public view returns (bytes32 data) {
-    data = keccak256(
-      abi.encode(
-        address(this),
-        block.chainid,
-        amount,
-        nftAddress,
-        tokenId,
         startBlock,
         expireBlock
       )
