@@ -170,6 +170,8 @@ contract ZAuction is Initializable, OwnableUpgradeable {
       tokenId
     );
 
+    priceInfo[tokenId].price = 0;
+
     // Owner -> message sender, send NFT
     registrar.safeTransferFrom(seller, msg.sender, tokenId);
 
