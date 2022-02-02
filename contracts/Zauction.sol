@@ -28,7 +28,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   mapping(uint256 => uint256) public topLevelDomainFee;
 
   event BidAccepted(
-    uint256 auctionId,
+    uint256 bidNonce,
     address indexed bidder,
     address indexed seller,
     uint256 amount,
@@ -44,8 +44,13 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     address nftAddress,
     uint256 indexed tokenId
   );
+  
+  event BuyNowPriceSet(
+    uint256 indexed tokenId,
+    uint256 amount
+  );
 
-  event BidCancelled(uint256 auctionId, address indexed bidder);
+  event BidCancelled(uint256 bidNonce, address indexed bidder);
 
   function getTopLevelId(uint256 tokenId) private returns (uint256) {
     uint256 topLevelId = topLevelDomainIdCache[tokenId];
@@ -69,7 +74,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
 
   /// recovers bidder's signature based on seller's proposed data and, if bid data hash matches the message hash, transfers nft and payment
   /// @param signature type encoded message signed by the bidder
-  /// @param auctionId unique per address auction identifier chosen by seller
+  /// @param bidNonce unique per address auction identifier chosen by seller
   /// @param bidder address of who the seller says the bidder is, for confirmation of the recovered bidder
   /// @param bid token amount bid
   /// @param tokenId token id we are transferring
@@ -78,7 +83,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   /// @param expireBlock block number at which acceptBid stops working
   function acceptBid(
     bytes memory signature,
-    uint256 auctionId,
+    uint256 bidNonce,
     address bidder,
     uint256 bid,
     uint256 tokenId,
@@ -92,7 +97,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     require(bidder != msg.sender, "zAuction: cannot sell to self");
 
     bytes32 data = createBid(
-      auctionId,
+      bidNonce,
       bid,
       address(registrar),
       tokenId,
@@ -101,25 +106,13 @@ contract ZAuction is Initializable, OwnableUpgradeable {
       expireBlock
     );
 
-    if (bidder != recover(toEthSignedMessageHash(data), signature)) {
-      // Encode data with legacy zAuction address for backwards compatibility
-      bytes32 legacyData = createLegacyBid(
-        auctionId,
-        bid,
-        address(registrar),
-        tokenId,
-        minbid,
-        startBlock,
-        expireBlock
-      );
-      require(
-        bidder == recover(toEthSignedMessageHash(legacyData), signature),
-        "zAuction: recovered incorrect bidder"
-      );
-    }
-    require(!consumed[bidder][auctionId], "zAuction: data already consumed");
+    require(
+      bidder == recover(toEthSignedMessageHash(data), signature),
+      "zAuction: recovered incorrect bidder"
+    );
+    require(!consumed[bidder][bidNonce], "zAuction: data already consumed");
 
-    consumed[bidder][auctionId] = true;
+    consumed[bidder][bidNonce] = true;
 
     // Transfer payment, royalty to minter, and fee to topLevel domain
     paymentTransfers(bidder, bid, msg.sender, getTopLevelId(tokenId), tokenId);
@@ -128,7 +121,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     registrar.safeTransferFrom(msg.sender, bidder, tokenId);
 
     emit BidAccepted(
-      auctionId,
+      bidNonce,
       bidder,
       msg.sender,
       bid,
@@ -146,6 +139,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
       "zAuction: listing already exists"
     );
     priceInfo[tokenId] = Listing(amount, owner);
+    emit BuyNowPriceSet(tokenId, amount);
   }
 
   /// recovers buyer's signature based on seller's proposed data and, if bid data hash matches the message hash, transfers nft and payment
@@ -181,20 +175,20 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   /// Cancels an existing bid for an NFT by marking it as already consumed
   /// so that it can never be fulfilled.
   /// @param account The account that made the specific bid
-  /// @param auctionId The ID of the auction associated with that bid
-  function cancelBid(address account, uint256 auctionId) external {
+  /// @param bidNonce A nonce for the bid (account based nonce)
+  function cancelBid(address account, uint256 bidNonce) external {
     require(
       msg.sender == account,
       "zAuction: Cannot cancel someone else's bid"
     );
     require(
-      !consumed[account][auctionId],
+      !consumed[account][bidNonce],
       "zAuction: Cannot cancel an already consumed bid"
     );
 
-    consumed[account][auctionId] = true;
+    consumed[account][bidNonce] = true;
 
-    emit BidCancelled(auctionId, account);
+    emit BidCancelled(bidNonce, account);
   }
 
   /// Allows the owner of the given token to set the fee owed upon sale
@@ -248,7 +242,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   }
 
   /// Create a bid object hashed with the current contract address
-  /// @param auctionId unique per address auction identifier chosen by seller
+  /// @param bidNonce unique per address bid identifier chosen by seller
   /// @param bid token amount bid
   /// @param nftAddress address of the nft contract
   /// @param tokenId token id we are transferring
@@ -256,7 +250,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   /// @param startBlock block number at which acceptBid starts working
   /// @param expireBlock block number at which acceptBid stops working
   function createBid(
-    uint256 auctionId,
+    uint256 bidNonce,
     uint256 bid,
     address nftAddress,
     uint256 tokenId,
@@ -266,42 +260,8 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   ) public view returns (bytes32 data) {
     data = keccak256(
       abi.encode(
-        auctionId,
+        bidNonce,
         address(this),
-        block.chainid,
-        bid,
-        nftAddress,
-        tokenId,
-        minbid,
-        startBlock,
-        expireBlock
-      )
-    );
-    return data;
-  }
-
-  /// Create a bid object hashed with the legacy contract address
-  /// for backwards compatability.
-  /// @param auctionId unique per address auction identifier chosen by seller
-  /// @param bid token amount bid
-  /// @param nftAddress address of the nft contract
-  /// @param tokenId token id we are transferring
-  /// @param minbid minimum bid allowed
-  /// @param startBlock block number at which acceptBid starts working
-  /// @param expireBlock block number at which acceptBid stops working
-  function createLegacyBid(
-    uint256 auctionId,
-    uint256 bid,
-    address nftAddress,
-    uint256 tokenId,
-    uint256 minbid,
-    uint256 startBlock,
-    uint256 expireBlock
-  ) public view returns (bytes32 data) {
-    data = keccak256(
-      abi.encode(
-        auctionId,
-        legacyZAuction,
         block.chainid,
         bid,
         nftAddress,
