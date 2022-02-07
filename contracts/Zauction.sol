@@ -14,9 +14,6 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   IERC20 public token;
   IRegistrar public registrar;
 
-  // Original zAuction contract address for backward compatibility
-  address legacyZAuction;
-
   struct Listing {
     uint256 price;
     address holder;
@@ -44,11 +41,8 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     address nftAddress,
     uint256 indexed tokenId
   );
-  
-  event BuyNowPriceSet(
-    uint256 indexed tokenId,
-    uint256 amount
-  );
+
+  event BuyNowPriceSet(uint256 indexed tokenId, uint256 amount);
 
   event BidCancelled(uint256 bidNonce, address indexed bidder);
 
@@ -61,15 +55,13 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     return topLevelId;
   }
 
-  function initialize(
-    IERC20 tokenAddress,
-    IRegistrar registrarAddress,
-    address legacyZAuctionAddress
-  ) public initializer {
+  function initialize(IERC20 tokenAddress, IRegistrar registrarAddress)
+    public
+    initializer
+  {
     __Ownable_init();
     token = tokenAddress;
     registrar = registrarAddress;
-    legacyZAuction = legacyZAuctionAddress;
   }
 
   /// recovers bidder's signature based on seller's proposed data and, if bid data hash matches the message hash, transfers nft and payment
