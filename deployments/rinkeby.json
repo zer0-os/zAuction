@@ -12,6 +12,19 @@
       "isUpgradable": true,
       "admin": "0xeAF9C6b6DBc6918E35b7252aADC3653E8b574e72",
       "implementation": "0x7eAB9E0490CDCC69628C212B3725437eCA6B0936"
+    },
+    {
+      "tag": "rinkeby",
+      "address": "0x427A487F0536A723fec2D89D1A2efd948034DD9E",
+      "version": "eab01f94c7b7a241c42c2ef5aafcbd446ffefd658072379e8b8b3856a448b755",
+      "date": "2022-02-10T18:59:00.424Z",
+      "args": {
+        "tokenAddress": "0x3Ae5d499cfb8FB645708CC6DA599C90e64b33A79",
+        "registrarAddress": "0xa4F6C921f914ff7972D7C55c15f015419326e0Ca"
+      },
+      "isUpgradable": true,
+      "admin": "0xeAF9C6b6DBc6918E35b7252aADC3653E8b574e72",
+      "implementation": "0xcc8C32E5f5f51205e96d8E1E4f4560B9c6Bc0876"
     }
   ]
 }

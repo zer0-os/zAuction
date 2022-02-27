@@ -1,0 +1,17 @@
+{
+  "zAuction": [
+    {
+      "tag": "mainnet",
+      "address": "0x1ee3F16aa8081891CfcfAB59d0DBFe03f2B77ff6",
+      "version": "eab01f94c7b7a241c42c2ef5aafcbd446ffefd658072379e8b8b3856a448b755",
+      "date": "2022-02-22T20:17:26.531Z",
+      "args": {
+        "tokenAddress": "0x2a3bFF78B79A009976EeA096a51A948a3dC00e34",
+        "registrarAddress": "0xc2e9678A71e50E5AEd036e00e9c5caeb1aC5987D"
+      },
+      "isUpgradable": true,
+      "admin": "0xCD0C2c1Fc2B4539Cc5C6481f58446526F4D05383",
+      "implementation": "0xc6Fc1c6852EeaE8CA46F34da49bDf5d6BAaC6b0F"
+    }
+  ]
+}
