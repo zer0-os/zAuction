@@ -85,10 +85,8 @@ describe("zAuction Contract Tests", () => {
       .returns("500000");
 
     // Top level owner fee is set at 4.44%
-    fakeRegistrar.parentOf
-      .whenCalledWith(bidParams.tokenId)
-      .returns(topLevelId);
-    fakeRegistrar.parentOf.whenCalledWith(topLevelId).returns("0");
+    fakeZNSHub.parentOf.whenCalledWith(bidParams.tokenId).returns(topLevelId);
+    fakeZNSHub.parentOf.whenCalledWith(topLevelId).returns("0");
     fakeZNSHub.ownerOf
       .whenCalledWith(bidParams.tokenId)
       .returns(topLevelOwner.address);
@@ -127,36 +125,35 @@ describe("zAuction Contract Tests", () => {
         bidParams.expireBlock
       );
 
-    const transactionPayment = ethers.utils.parseEther("111.3888");
-    const royalty = ethers.utils.parseEther("6.150");
+    const transactionPayment = ethers.utils.parseEther("105.2388");
+
+    const royalty = ethers.utils.parseEther("12.3");
+
     const fee = ethers.utils.parseEther("5.4612");
 
     expect(fakeRegistrar.minterOf).to.have.been.calledWith(bidParams.tokenId);
     expect(fakeZNSHub.ownerOf).to.have.been.calledWith(topLevelId);
 
-    // Even when using SafeERC20 contracts in zAuction, typechain gives us
-    // regular ERC20 interfaces, so we can't test `SafeERC20.safeTransferFrom`
-
     // Bidder -> Owner, pay transaction
-    // expect(fakeERC20Token.transferFrom).calledWith(
-    //   buyer.address,
-    //   seller.address,
-    //   transactionPayment
-    // );
+    expect(fakeERC20Token.transferFrom).to.have.been.calledWith(
+      buyer.address,
+      seller.address,
+      transactionPayment.toString()
+    );
 
-    // // Bidder -> Minter, pay minter royalty
-    // expect(fakeERC20Token.transferFrom).to.have.been.calledWith(
-    //   buyer.address,
-    //   minter.address,
-    //   royalty
-    // );
+    // Bidder -> Minter, pay minter royalty
+    expect(fakeERC20Token.transferFrom).to.have.been.calledWith(
+      buyer.address,
+      minter.address,
+      royalty
+    );
 
-    // // Bidder -> topLevel Owner, pay top level owner fee
-    // expect(fakeERC20Token.transferFrom).to.have.been.calledWith(
-    //   buyer.address,
-    //   topLevelOwner.address,
-    //   fee
-    // );
+    // Bidder -> topLevel Owner, pay top level owner fee
+    expect(fakeERC20Token.transferFrom).to.have.been.calledWith(
+      buyer.address,
+      topLevelOwner.address,
+      fee
+    );
 
     fakeRegistrar.domainRoyaltyAmount.reset();
     fakeRegistrar.parentOf.reset();
