@@ -134,10 +134,6 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   /// @param amount token amount of sale
   /// @param tokenId token id we are transferring
   function buyNow(uint256 amount, uint256 tokenId) external {
-<<<<<<< Updated upstream
-    require(amount == priceInfo[tokenId].price, "zAuction: wrong sale price");
-    address seller = hub.ownerOf(tokenId);
-=======
     IRegistrar registrar = hub.getRegistrarForDomain(tokenId);
     require(
       amount == priceInfo[registrar][tokenId].price,
@@ -146,7 +142,6 @@ contract ZAuction is Initializable, OwnableUpgradeable {
 
     address seller = registrar.ownerOf(tokenId);
 
->>>>>>> Stashed changes
     require(msg.sender != seller, "zAuction: cannot sell to self");
     require(
       priceInfo[registrar][tokenId].holder == seller,
@@ -168,8 +163,6 @@ contract ZAuction is Initializable, OwnableUpgradeable {
 
     // To disallow being shown as a sale after being already purchased, we set price to 0
     priceInfo[registrar][tokenId].price = 0;
-
-    IRegistrar registrar = hub.getRegistrarForDomain(tokenId);
 
     // Owner -> message sender, send NFT
     registrar.safeTransferFrom(seller, msg.sender, tokenId);
