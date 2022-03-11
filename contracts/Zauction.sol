@@ -21,7 +21,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     address holder;
   }
 
-  mapping(uint256 => Listing) public priceInfo;
+  mapping(IRegistrar => mapping(uint256 => Listing)) public priceInfo;
   mapping(address => mapping(uint256 => bool)) public consumed;
   mapping(uint256 => uint256) public topLevelDomainIdCache;
   mapping(uint256 => uint256) public topLevelDomainFee;
@@ -121,11 +121,12 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   function setBuyPrice(uint256 amount, uint256 tokenId) external {
     address owner = hub.ownerOf(tokenId);
     require(msg.sender == owner, "zAuction: only owner can set price");
+    IRegistrar registrar = hub.getRegistrarForDomain(tokenId);
     require(
-      priceInfo[tokenId].price != amount,
+      priceInfo[registrar][tokenId].price != amount,
       "zAuction: listing already exists"
     );
-    priceInfo[tokenId] = Listing(amount, owner);
+    priceInfo[registrar][tokenId] = Listing(amount, owner);
     emit BuyNowPriceSet(tokenId, amount);
   }
 
@@ -133,14 +134,28 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   /// @param amount token amount of sale
   /// @param tokenId token id we are transferring
   function buyNow(uint256 amount, uint256 tokenId) external {
+<<<<<<< Updated upstream
     require(amount == priceInfo[tokenId].price, "zAuction: wrong sale price");
     address seller = hub.ownerOf(tokenId);
+=======
+    IRegistrar registrar = hub.getRegistrarForDomain(tokenId);
+    require(
+      amount == priceInfo[registrar][tokenId].price,
+      "zAuction: wrong sale price"
+    );
+
+    address seller = registrar.ownerOf(tokenId);
+
+>>>>>>> Stashed changes
     require(msg.sender != seller, "zAuction: cannot sell to self");
     require(
-      priceInfo[tokenId].holder == seller,
+      priceInfo[registrar][tokenId].holder == seller,
       "zAuction: not listed for sale"
     );
-    require(priceInfo[tokenId].price != 0, "zAuction: item not for sale");
+    require(
+      priceInfo[registrar][tokenId].price != 0,
+      "zAuction: item not for sale"
+    );
 
     // Transfer payment, royalty to minter, and fee to topLevel domain
     paymentTransfers(
@@ -151,7 +166,8 @@ contract ZAuction is Initializable, OwnableUpgradeable {
       tokenId
     );
 
-    priceInfo[tokenId].price = 0;
+    // To disallow being shown as a sale after being already purchased, we set price to 0
+    priceInfo[registrar][tokenId].price = 0;
 
     IRegistrar registrar = hub.getRegistrarForDomain(tokenId);
 
