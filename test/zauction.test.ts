@@ -625,14 +625,18 @@ describe("zAuction Contract Tests", () => {
   // buyNow tests
   it("Only allows owner to setBuyPrice", async () => {
     const callers = await ethers.getSigners();
-    const accountOne = callers[0];
-    const accountTwo = callers[1];
+    const seller = callers[0];
+    const buyer = callers[1];
+
     // Random string from random.org - collisions cause other tests to behave weirdly
     const id = "11497969225667248727";
 
-    fakeRegistrar.ownerOf.whenCalledWith(id).returns(accountOne.address);
+    fakeZNSHub.getRegistrarForDomain
+      .whenCalledWith(id)
+      .returns(fakeRegistrar.address);
+    fakeRegistrar.ownerOf.whenCalledWith(id).returns(seller.address);
 
-    const tx = zAuction.connect(accountTwo).setBuyPrice("1", id);
+    const tx = zAuction.connect(buyer).setBuyPrice("1", id);
 
     await expect(tx).to.be.revertedWith("zAuction: only owner can set price");
   });
@@ -643,7 +647,10 @@ describe("zAuction Contract Tests", () => {
     // Random string from random.org - collisions cause other tests to behave weirdly
     const id = "22971314508482482246";
 
-    fakeZNSHub.ownerOf.whenCalledWith(id).returns(owner.address);
+    fakeZNSHub.getRegistrarForDomain
+      .whenCalledWith(id)
+      .returns(fakeRegistrar.address);
+    fakeRegistrar.ownerOf.whenCalledWith(id).returns(owner.address);
 
     await zAuction.connect(owner).setBuyPrice("1", id);
     const tx = zAuction.connect(owner).setBuyPrice("1", id);
@@ -653,67 +660,77 @@ describe("zAuction Contract Tests", () => {
 
   it("Fails to buyNow for the wrong price", async () => {
     const callers = await ethers.getSigners();
-    const accountOne = callers[0];
-    const accountTwo = callers[1];
+    const seller = callers[0];
+    const buyer = callers[1];
     // Random string from random.org - collisions cause other tests to behave weirdly
     const id = "48297906617199394916";
 
-    fakeZNSHub.ownerOf.whenCalledWith(id).returns(accountOne.address);
+    fakeZNSHub.getRegistrarForDomain
+      .whenCalledWith(id)
+      .returns(fakeRegistrar.address);
+    fakeRegistrar.ownerOf.whenCalledWith(id).returns(seller.address);
 
-    zAuction.connect(accountOne).setBuyPrice("1", id);
-    const tx = zAuction.connect(accountTwo).buyNow("2", id);
+    zAuction.connect(seller).setBuyPrice("1", id);
+    const tx = zAuction.connect(buyer).buyNow("2", id);
 
     await expect(tx).to.be.revertedWith("zAuction: wrong sale price");
   });
 
   it("Fails to buyNow when not listed by current owner", async () => {
     const callers = await ethers.getSigners();
-    const accountOne = callers[0];
-    const accountTwo = callers[1];
+    const seller = callers[0];
+    const buyer = callers[1];
     // Random string from random.org - collisions cause other tests to behave weirdly
     const id = "61480887673643103205";
 
-    fakeZNSHub.ownerOf.whenCalledWith(id).returns(accountOne.address);
+    fakeZNSHub.getRegistrarForDomain
+      .whenCalledWith(id)
+      .returns(fakeRegistrar.address);
+    fakeRegistrar.ownerOf.whenCalledWith(id).returns(seller.address);
 
-    await zAuction.connect(accountOne).setBuyPrice("1", id);
+    await zAuction.connect(seller).setBuyPrice("1", id);
 
-    fakeZNSHub.ownerOf.whenCalledWith(id).returns(accountTwo.address);
+    fakeRegistrar.ownerOf.whenCalledWith(id).returns(buyer.address);
 
-    const tx = zAuction.connect(accountOne).buyNow("1", id);
+    const tx = zAuction.connect(seller).buyNow("1", id);
 
     await expect(tx).to.be.revertedWith("zAuction: not listed for sale");
   });
 
   it("Fails to buyNow when not listed for sale", async () => {
     const callers = await ethers.getSigners();
-    const accountOne = callers[0];
-    const accountTwo = callers[1];
+    const seller = callers[0];
+    const buyer = callers[1];
     // Random string from random.org - collisions cause other tests to behave weirdly
     const id = "32959946775240558658";
 
-    fakeZNSHub.ownerOf.whenCalledWith(id).returns(accountOne.address);
+    fakeZNSHub.getRegistrarForDomain
+      .whenCalledWith(id)
+      .returns(fakeRegistrar.address);
+    fakeRegistrar.ownerOf.whenCalledWith(id).returns(seller.address);
 
-    const tx = zAuction.connect(accountTwo).buyNow("0", id);
+    const tx = zAuction.connect(buyer).buyNow("0", id);
 
     await expect(tx).to.be.revertedWith("zAuction: not listed for sale");
   });
 
   it("Fails to buyNow when listed for sale at a price of 0", async () => {
     const callers = await ethers.getSigners();
-    const accountOne = callers[0];
-    const accountTwo = callers[1];
+    const seller = callers[0];
+    const buyer = callers[1];
     // Random string from random.org - collisions cause other tests to behave weirdly
     const id = "30277782698379432561";
 
-    fakeZNSHub.ownerOf.whenCalledWith(id).returns(accountOne.address);
+    fakeZNSHub.getRegistrarForDomain.returns(fakeRegistrar.address);
+    fakeRegistrar.ownerOf.whenCalledWith(id).returns(seller.address);
 
     //Generate new listing
-    await zAuction.connect(accountOne).setBuyPrice("1", id);
+    await zAuction.connect(seller).setBuyPrice("1", id);
 
     //Changed my mind, I don't want to sell id
-    await zAuction.connect(accountOne).setBuyPrice("0", id);
+    await zAuction.connect(seller).setBuyPrice("0", id);
 
-    const tx = zAuction.connect(accountTwo).buyNow("0", id);
+    const tx = zAuction.connect(buyer).buyNow("0", id);
 
     await expect(tx).to.be.revertedWith("zAuction: item not for sale");
   });
@@ -726,9 +743,8 @@ describe("zAuction Contract Tests", () => {
     const id = "43229603412059879257";
     const amount = "1";
 
-    fakeZNSHub.ownerOf.whenCalledWith(id).returns(seller.address);
     fakeZNSHub.getRegistrarForDomain.returns(fakeRegistrar.address);
-    fakeRegistrar.minterOf.whenCalledWith(id).returns(seller.address);
+    fakeRegistrar.ownerOf.whenCalledWith(id).returns(seller.address);
     fakeERC20Token.transferFrom.returns(true);
 
     //Generate new listing
@@ -751,20 +767,18 @@ describe("zAuction Contract Tests", () => {
     const id = "75466840944549860413";
     const amount = "1";
 
-    fakeZNSHub.ownerOf.whenCalledWith(id).returns(seller.address);
+    fakeZNSHub.getRegistrarForDomain.returns(fakeRegistrar.address);
+    fakeRegistrar.ownerOf.whenCalledWith(id).returns(seller.address);
 
     //Generate new listing
     await zAuction.connect(seller).setBuyPrice(amount, id);
 
     await zAuction.connect(buyer).buyNow(amount, id);
 
-    expect(
-      fakeRegistrar["safeTransferFrom(address,address,uint256)"]
-    ).to.have.been.calledWith(
-      seller.address,
-      buyer.address,
-      BigNumber.from(id)
-    );
+    // Buyer -> Owner, Buyer -> Minter, Buyer -> Top level owner
+    expect(fakeERC20Token.transferFrom).to.have.been.called;
+    expect(fakeRegistrar["safeTransferFrom(address,address,uint256)"]).to.have
+      .been.called;
   });
 
   // Covers a corner case where a buyer's listing could have continued existing after already being used to make a purchase.
@@ -776,7 +790,8 @@ describe("zAuction Contract Tests", () => {
     const id = "50369901766853079283";
     const amount = "1";
 
-    fakeZNSHub.ownerOf.whenCalledWith(id).returns(seller.address);
+    fakeZNSHub.getRegistrarForDomain.returns(fakeRegistrar.address);
+    fakeRegistrar.ownerOf.whenCalledWith(id).returns(seller.address);
 
     //Generate new listing
     await zAuction.connect(seller).setBuyPrice(amount, id);

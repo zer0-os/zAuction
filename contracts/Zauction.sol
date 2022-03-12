@@ -119,9 +119,9 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   }
 
   function setBuyPrice(uint256 amount, uint256 tokenId) external {
-    address owner = hub.ownerOf(tokenId);
-    require(msg.sender == owner, "zAuction: only owner can set price");
     IRegistrar registrar = hub.getRegistrarForDomain(tokenId);
+    address owner = registrar.ownerOf(tokenId);
+    require(msg.sender == owner, "zAuction: only owner can set price");
     require(
       priceInfo[registrar][tokenId].price != amount,
       "zAuction: listing already exists"
