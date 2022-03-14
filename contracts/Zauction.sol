@@ -14,6 +14,9 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   using SafeERC20 for IERC20;
 
   IERC20 public token;
+
+  // To avoid overriding this variable in memory on upgrades we have to keep it
+  IRegistrar public legacyRegistrar;
   IZNSHub public hub;
 
   struct Listing {
@@ -48,13 +51,13 @@ contract ZAuction is Initializable, OwnableUpgradeable {
 
   event BidCancelled(uint256 bidNonce, address indexed bidder);
 
-  function initialize(IERC20 tokenAddress, IZNSHub znsHubAddress)
+  function initialize(IERC20 tokenAddress, IRegistrar registrarAddress)
     public
     initializer
   {
     __Ownable_init();
     token = tokenAddress;
-    hub = znsHubAddress;
+    legacyRegistrar = registrarAddress;
   }
 
   /// recovers bidder's signature based on seller's proposed data and, if bid data hash matches the message hash, transfers nft and payment
@@ -187,6 +190,20 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     consumed[account][bidNonce] = true;
 
     emit BidCancelled(bidNonce, account);
+  }
+
+  /// Allows setting of a zNS Hub that provides access to multiple
+  /// registrars for different domains, instead of a single one.
+  /// Because this contract has already been deployed this value
+  /// cannot be set in the initializer. On new upgrades, this must
+  /// be run immediately afterwards.
+  /// @param hubAddress The address of the zNS Hub deployment
+  function setZNSHub(IZNSHub hubAddress) public onlyOwner {
+    require(
+      address(hubAddress) != address(0),
+      "zAuction: Cannot set the zNSHub to an empty address"
+    );
+    hub = hubAddress;
   }
 
   /// Allows the owner of the given token to set the fee owed upon sale
