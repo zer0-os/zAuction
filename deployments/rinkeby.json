@@ -2,16 +2,16 @@
   "zAuction": [
     {
       "tag": "rinkeby",
-      "address": "0xe94a5456Db55af2D6a37FaDd7cEd363EDBcA65CF",
-      "version": "3ff80dd76fafda0ed3888770435964f6958e54d1754f9a2c88818000fa0897e4",
-      "date": "2022-01-20T23:43:09.943Z",
+      "address": "0xb2416Aed6f5439Ffa0eCCAaa2b643f3D9828f86B",
+      "version": "eab01f94c7b7a241c42c2ef5aafcbd446ffefd658072379e8b8b3856a448b755",
+      "date": "2022-03-15T18:32:38.800Z",
       "args": {
         "tokenAddress": "0x3Ae5d499cfb8FB645708CC6DA599C90e64b33A79",
         "registrarAddress": "0xa4F6C921f914ff7972D7C55c15f015419326e0Ca"
       },
       "isUpgradable": true,
       "admin": "0xeAF9C6b6DBc6918E35b7252aADC3653E8b574e72",
-      "implementation": "0x7eAB9E0490CDCC69628C212B3725437eCA6B0936"
+      "implementation": "0x063eE6603995e59C19AAe7D6F82D1b2e738A7ebb"
     }
   ]
 }
