@@ -4,7 +4,7 @@ import {
   FakeContract,
   MockContract,
   MockContractFactory,
-  smock
+  smock,
 } from "@defi-wonderland/smock";
 
 import {
@@ -12,6 +12,8 @@ import {
   IERC20__factory,
   IRegistrar,
   IRegistrar__factory,
+  IZNSHub,
+  IZNSHub__factory,
   ZAuction,
   ZAuction__factory,
 } from "../typechain";
@@ -26,10 +28,13 @@ describe("zAuction Contract Tests", () => {
   let bidder: SignerWithAddress;
   let owner: SignerWithAddress;
   let zAuction: ZAuction;
-  let fakeERC20Token: FakeContract<IERC20>;
-  let fakeRegistrar: FakeContract<IRegistrar>;
   let mockZauctionFactory: MockContractFactory<ZAuction__factory>;
   let mockZauction: MockContract<ZAuction>;
+
+  // Interfaces can't deploy from the factory
+  let fakeERC20Token: FakeContract<IERC20>;
+  let fakeRegistrar: FakeContract<IRegistrar>;
+  let fakeZNSHub: FakeContract<IZNSHub>;
 
   before(async () => {
     const signers: SignerWithAddress[] = await ethers.getSigners();
@@ -39,6 +44,8 @@ describe("zAuction Contract Tests", () => {
 
     fakeERC20Token = await smock.fake(IERC20__factory.abi);
     fakeRegistrar = await smock.fake(IRegistrar__factory.abi);
+    fakeZNSHub = await smock.fake(IZNSHub__factory.abi);
+
     mockZauctionFactory = await smock.mock<ZAuction__factory>("ZAuction");
     mockZauction = await mockZauctionFactory.deploy();
 
@@ -47,13 +54,7 @@ describe("zAuction Contract Tests", () => {
 
     const zAuctionFactory = new ZAuction__factory(creator);
     zAuction = await zAuctionFactory.deploy();
-    const legacyZAuctionKovanAddress =
-      "0x18A804a028aAf1F30082E91d2947734961Dd7f89";
-    await zAuction.initialize(
-      fakeERC20Token.address,
-      fakeRegistrar.address,
-      legacyZAuctionKovanAddress
-    );
+    await zAuction.initialize(fakeERC20Token.address, fakeZNSHub.address);
   });
 
   it("Successfully tests a specific scenario", async () => {
@@ -63,7 +64,6 @@ describe("zAuction Contract Tests", () => {
     const topLevelOwner = signers[1]; // User W, Owns A, 4.44% fee
     const seller = signers[2]; // User X, selling ABC
     const buyer = signers[3]; // user Y, buying ABC, bids 123
-    // const id = "2";
     const topLevelId = "1";
 
     const bidParams = {
@@ -81,13 +81,14 @@ describe("zAuction Contract Tests", () => {
       .returns("500000");
 
     // Top level owner fee is set at 4.44%
-    fakeRegistrar.parentOf
+    fakeZNSHub.parentOf.whenCalledWith(bidParams.tokenId).returns(topLevelId);
+    fakeZNSHub.parentOf.whenCalledWith(topLevelId).returns("0");
+    fakeZNSHub.ownerOf
       .whenCalledWith(bidParams.tokenId)
-      .returns(topLevelId);
-    fakeRegistrar.parentOf.whenCalledWith(topLevelId).returns("0");
-    fakeRegistrar.ownerOf
-      .whenCalledWith(topLevelId)
       .returns(topLevelOwner.address);
+    fakeZNSHub.getRegistrarForDomain
+      .whenCalledWith(bidParams.tokenId)
+      .returns(fakeRegistrar.address);
     fakeRegistrar.minterOf.whenCalledWith(topLevelId).returns(minter.address);
 
     await zAuction
@@ -120,22 +121,20 @@ describe("zAuction Contract Tests", () => {
         bidParams.expireBlock
       );
 
-    const transactionPayment = ethers.utils.parseEther("111.3888");
-    const royalty = ethers.utils.parseEther("6.150");
+    const transactionPayment = ethers.utils.parseEther("105.2388");
+
+    const royalty = ethers.utils.parseEther("12.3");
+
     const fee = ethers.utils.parseEther("5.4612");
 
-    expect(fakeRegistrar.domainRoyaltyAmount).to.have.been.calledWith(
-      topLevelId
-    );
-    expect(fakeRegistrar.parentOf).to.have.been.calledWith(bidParams.tokenId);
-    expect(fakeRegistrar.parentOf).to.have.been.calledWith(topLevelId);
-    expect(fakeRegistrar.ownerOf).to.have.been.calledWith(topLevelId);
+    expect(fakeRegistrar.minterOf).to.have.been.calledWith(bidParams.tokenId);
+    expect(fakeZNSHub.ownerOf).to.have.been.calledWith(topLevelId);
 
     // Bidder -> Owner, pay transaction
-    expect(fakeERC20Token.transferFrom).calledWith(
+    expect(fakeERC20Token.transferFrom).to.have.been.calledWith(
       buyer.address,
       seller.address,
-      transactionPayment
+      transactionPayment.toString()
     );
 
     // Bidder -> Minter, pay minter royalty
@@ -449,16 +448,15 @@ describe("zAuction Contract Tests", () => {
     // Each WILD is 10^18, Bid is 15 WILD
     // A percent with 5 decimals of precision
     const bid = ethers.utils.parseEther("15");
-    const id = "123245";
+    const tokenId = "123245";
     const callers = await ethers.getSigners();
     const mainAccount = callers[0];
 
-    // mockRegistrar.domainRoyaltyAmount.returns(1000000);
-    fakeRegistrar.ownerOf.whenCalledWith(id).returns(mainAccount.address);
+    fakeZNSHub.ownerOf.whenCalledWith(tokenId).returns(mainAccount.address);
 
     // Set fee for 10%
-    await zAuction.connect(mainAccount).setTopLevelDomainFee(id, 1000000);
-    let returnedFee = await zAuction.calculateTopLevelDomainFee(id, bid);
+    await zAuction.connect(mainAccount).setTopLevelDomainFee(tokenId, 1000000);
+    let returnedFee = await zAuction.calculateTopLevelDomainFee(tokenId, bid);
     let fee = returnedFee.toString();
     expect(fee).to.equal(ethers.utils.parseEther("1.5"));
   });
@@ -586,43 +584,53 @@ describe("zAuction Contract Tests", () => {
   });
   it("Gets the top level parent when the id given is not already the top", async () => {
     // Case where id given is not the top level domain id
-    fakeRegistrar.parentOf.whenCalledWith("3").returns("2");
-    fakeRegistrar.parentOf.whenCalledWith("2").returns("1");
-    fakeRegistrar.parentOf.whenCalledWith("1").returns("0");
+    fakeZNSHub.parentOf.whenCalledWith("3").returns("2");
+    fakeZNSHub.parentOf.whenCalledWith("2").returns("1");
+    fakeZNSHub.parentOf.whenCalledWith("1").returns("0");
     const id = "3";
-    const TopLevelId = await zAuction.topLevelDomainIdOf(id);
-    expect(TopLevelId).to.equal("1");
+    const topLevelId = await zAuction.topLevelDomainIdOf(id);
+    expect(topLevelId).to.equal("1");
   });
   it("Fails to cancel a bid when the caller is not the creator of that bid", async () => {
     const callers = await ethers.getSigners();
     const accountOne = callers[0];
     const accountTwo = callers[1];
 
-    const tx = zAuction.connect(accountOne).cancelBid(accountTwo.address, "123");
+    const tx = zAuction
+      .connect(accountOne)
+      .cancelBid(accountTwo.address, "123");
 
-    await expect(tx).to.be.revertedWith("zAuction: Cannot cancel someone else's bid")
+    await expect(tx).to.be.revertedWith(
+      "zAuction: Cannot cancel someone else's bid"
+    );
   });
   it("Fails to cancel a bid when it has already been consumed", async () => {
     mockZauction.setVariable("consumed", {
       [bidder.address]: {
-        "12345": true
-      }
+        "12345": true,
+      },
     });
     const tx = mockZauction.connect(bidder).cancelBid(bidder.address, "12345");
-    await expect(tx).to.be.revertedWith("zAuction: Cannot cancel an already consumed bid")
-  })
+    await expect(tx).to.be.revertedWith(
+      "zAuction: Cannot cancel an already consumed bid"
+    );
+  });
 
   // buyNow tests
   it("Only allows owner to setBuyPrice", async () => {
     const callers = await ethers.getSigners();
-    const accountOne = callers[0];
-    const accountTwo = callers[1];
+    const seller = callers[0];
+    const buyer = callers[1];
+
     // Random string from random.org - collisions cause other tests to behave weirdly
     const id = "11497969225667248727";
 
-    fakeRegistrar.ownerOf.whenCalledWith(id).returns(accountOne.address);
+    fakeZNSHub.getRegistrarForDomain
+      .whenCalledWith(id)
+      .returns(fakeRegistrar.address);
+    fakeRegistrar.ownerOf.whenCalledWith(id).returns(seller.address);
 
-    const tx = zAuction.connect(accountTwo).setBuyPrice("1", id);
+    const tx = zAuction.connect(buyer).setBuyPrice("1", id);
 
     await expect(tx).to.be.revertedWith("zAuction: only owner can set price");
   });
@@ -633,6 +641,9 @@ describe("zAuction Contract Tests", () => {
     // Random string from random.org - collisions cause other tests to behave weirdly
     const id = "22971314508482482246";
 
+    fakeZNSHub.getRegistrarForDomain
+      .whenCalledWith(id)
+      .returns(fakeRegistrar.address);
     fakeRegistrar.ownerOf.whenCalledWith(id).returns(owner.address);
 
     await zAuction.connect(owner).setBuyPrice("1", id);
@@ -643,67 +654,77 @@ describe("zAuction Contract Tests", () => {
 
   it("Fails to buyNow for the wrong price", async () => {
     const callers = await ethers.getSigners();
-    const accountOne = callers[0];
-    const accountTwo = callers[1];
+    const seller = callers[0];
+    const buyer = callers[1];
     // Random string from random.org - collisions cause other tests to behave weirdly
     const id = "48297906617199394916";
 
-    fakeRegistrar.ownerOf.whenCalledWith(id).returns(accountOne.address);
+    fakeZNSHub.getRegistrarForDomain
+      .whenCalledWith(id)
+      .returns(fakeRegistrar.address);
+    fakeRegistrar.ownerOf.whenCalledWith(id).returns(seller.address);
 
-    zAuction.connect(accountOne).setBuyPrice("1", id);
-    const tx = zAuction.connect(accountTwo).buyNow("2", id);
+    zAuction.connect(seller).setBuyPrice("1", id);
+    const tx = zAuction.connect(buyer).buyNow("2", id);
 
     await expect(tx).to.be.revertedWith("zAuction: wrong sale price");
   });
 
   it("Fails to buyNow when not listed by current owner", async () => {
     const callers = await ethers.getSigners();
-    const accountOne = callers[0];
-    const accountTwo = callers[1];
+    const seller = callers[0];
+    const buyer = callers[1];
     // Random string from random.org - collisions cause other tests to behave weirdly
     const id = "61480887673643103205";
 
-    fakeRegistrar.ownerOf.whenCalledWith(id).returns(accountOne.address);
+    fakeZNSHub.getRegistrarForDomain
+      .whenCalledWith(id)
+      .returns(fakeRegistrar.address);
+    fakeRegistrar.ownerOf.whenCalledWith(id).returns(seller.address);
 
-    await zAuction.connect(accountOne).setBuyPrice("1", id);
+    await zAuction.connect(seller).setBuyPrice("1", id);
 
-    fakeRegistrar.ownerOf.whenCalledWith(id).returns(accountTwo.address);
+    fakeRegistrar.ownerOf.whenCalledWith(id).returns(buyer.address);
 
-    const tx = zAuction.connect(accountOne).buyNow("1", id);
+    const tx = zAuction.connect(seller).buyNow("1", id);
 
     await expect(tx).to.be.revertedWith("zAuction: not listed for sale");
   });
 
   it("Fails to buyNow when not listed for sale", async () => {
     const callers = await ethers.getSigners();
-    const accountOne = callers[0];
-    const accountTwo = callers[1];
+    const seller = callers[0];
+    const buyer = callers[1];
     // Random string from random.org - collisions cause other tests to behave weirdly
     const id = "32959946775240558658";
 
-    fakeRegistrar.ownerOf.whenCalledWith(id).returns(accountOne.address);
+    fakeZNSHub.getRegistrarForDomain
+      .whenCalledWith(id)
+      .returns(fakeRegistrar.address);
+    fakeRegistrar.ownerOf.whenCalledWith(id).returns(seller.address);
 
-    const tx = zAuction.connect(accountTwo).buyNow("0", id);
+    const tx = zAuction.connect(buyer).buyNow("0", id);
 
     await expect(tx).to.be.revertedWith("zAuction: not listed for sale");
   });
 
   it("Fails to buyNow when listed for sale at a price of 0", async () => {
     const callers = await ethers.getSigners();
-    const accountOne = callers[0];
-    const accountTwo = callers[1];
+    const seller = callers[0];
+    const buyer = callers[1];
     // Random string from random.org - collisions cause other tests to behave weirdly
     const id = "30277782698379432561";
 
-    fakeRegistrar.ownerOf.whenCalledWith(id).returns(accountOne.address);
+    fakeZNSHub.getRegistrarForDomain.returns(fakeRegistrar.address);
+    fakeRegistrar.ownerOf.whenCalledWith(id).returns(seller.address);
 
     //Generate new listing
-    await zAuction.connect(accountOne).setBuyPrice("1", id);
+    await zAuction.connect(seller).setBuyPrice("1", id);
 
     //Changed my mind, I don't want to sell id
-    await zAuction.connect(accountOne).setBuyPrice("0", id);
+    await zAuction.connect(seller).setBuyPrice("0", id);
 
-    const tx = zAuction.connect(accountTwo).buyNow("0", id);
+    const tx = zAuction.connect(buyer).buyNow("0", id);
 
     await expect(tx).to.be.revertedWith("zAuction: item not for sale");
   });
@@ -716,8 +737,8 @@ describe("zAuction Contract Tests", () => {
     const id = "43229603412059879257";
     const amount = "1";
 
+    fakeZNSHub.getRegistrarForDomain.returns(fakeRegistrar.address);
     fakeRegistrar.ownerOf.whenCalledWith(id).returns(seller.address);
-
     fakeERC20Token.transferFrom.returns(true);
 
     //Generate new listing
@@ -740,6 +761,7 @@ describe("zAuction Contract Tests", () => {
     const id = "75466840944549860413";
     const amount = "1";
 
+    fakeZNSHub.getRegistrarForDomain.returns(fakeRegistrar.address);
     fakeRegistrar.ownerOf.whenCalledWith(id).returns(seller.address);
 
     //Generate new listing
@@ -747,11 +769,10 @@ describe("zAuction Contract Tests", () => {
 
     await zAuction.connect(buyer).buyNow(amount, id);
 
-    expect(fakeRegistrar["safeTransferFrom(address,address,uint256)"]).to.have.been.calledWith(
-      seller.address,
-      buyer.address,
-      BigNumber.from(id)
-    );
+    // Buyer -> Owner, Buyer -> Minter, Buyer -> Top level owner
+    expect(fakeERC20Token.transferFrom).to.have.been.called;
+    expect(fakeRegistrar["safeTransferFrom(address,address,uint256)"]).to.have
+      .been.called;
   });
 
   // Covers a corner case where a buyer's listing could have continued existing after already being used to make a purchase.
@@ -763,6 +784,7 @@ describe("zAuction Contract Tests", () => {
     const id = "50369901766853079283";
     const amount = "1";
 
+    fakeZNSHub.getRegistrarForDomain.returns(fakeRegistrar.address);
     fakeRegistrar.ownerOf.whenCalledWith(id).returns(seller.address);
 
     //Generate new listing
@@ -771,7 +793,9 @@ describe("zAuction Contract Tests", () => {
     await zAuction.connect(buyer).buyNow(amount, id);
 
     //Successful transfer of NFT
-    expect(fakeRegistrar["safeTransferFrom(address,address,uint256)"]).to.have.been.calledWith(
+    expect(
+      fakeRegistrar["safeTransferFrom(address,address,uint256)"]
+    ).to.have.been.calledWith(
       seller.address,
       buyer.address,
       BigNumber.from(id)
