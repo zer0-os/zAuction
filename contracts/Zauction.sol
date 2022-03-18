@@ -205,6 +205,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
       address(hubAddress) != address(0),
       "zAuction: Cannot set the zNSHub to an empty address"
     );
+    require(hubAddress != hub, "zAuction: Cannot set to the same hub");
     hub = hubAddress;
   }
 
