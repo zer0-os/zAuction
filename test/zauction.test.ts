@@ -20,7 +20,6 @@ import {
 import { BigNumber } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
-import { solidityKeccak256 } from "ethers/lib/utils";
 
 chai.use(smock.matchers);
 
@@ -55,9 +54,6 @@ describe("zAuction Contract Tests", () => {
 
     const zAuctionFactory = new ZAuction__factory(creator);
     zAuction = await zAuctionFactory.deploy();
-    // Unused
-    // const legacyZAuctionKovanAddress =
-    //   "0x18A804a028aAf1F30082E91d2947734961Dd7f89";
     await zAuction.initialize(fakeERC20Token.address, fakeZNSHub.address);
   });
 
@@ -456,9 +452,7 @@ describe("zAuction Contract Tests", () => {
     const callers = await ethers.getSigners();
     const mainAccount = callers[0];
 
-    // mockRegistrar.domainRoyaltyAmount.returns(1000000);
     fakeZNSHub.ownerOf.whenCalledWith(tokenId).returns(mainAccount.address);
-    // fakeRegistrar.ownerOf.whenCalledWith(tokenId).returns(mainAccount.address);
 
     // Set fee for 10%
     await zAuction.connect(mainAccount).setTopLevelDomainFee(tokenId, 1000000);
