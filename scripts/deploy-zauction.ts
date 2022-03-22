@@ -22,6 +22,8 @@ const logger = getLogger("scripts::deploy-zauction");
 const tokenAddress = "0x50A0A3E9873D7e7d306299a75Dc05bd3Ab2d251F"; //kovan addresses, change to correct later
 const registrarAddress = "0xC613fCc3f81cC2888C5Cccc1620212420FFe4931";
 
+const legacyZAuctionAddress = "0x18A804a028aAf1F30082E91d2947734961Dd7f89";
+
 interface DeployedContract {
   isUpgradable: boolean;
   instance: Contract;
@@ -53,7 +55,7 @@ async function main() {
 
   const instance = await upgrades.deployProxy(
     zauctionfactory,
-    [tokenAddress, registrarAddress],
+    [tokenAddress, registrarAddress, legacyZAuctionAddress],
     {
       initializer: "initialize",
     }

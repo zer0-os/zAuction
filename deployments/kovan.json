@@ -1,0 +1,17 @@
+{
+  "zAuction": [
+    {
+      "tag": "wilder-prod",
+      "address": "0x1cb7330Cf59FEcb9e1502331fd7c835bA1bA9a66",
+      "version": "3ff80dd76fafda0ed3888770435964f6958e54d1754f9a2c88818000fa0897e4",
+      "date": "2021-11-15T18:58:28.916Z",
+      "args": {
+        "tokenAddress": "0x50A0A3E9873D7e7d306299a75Dc05bd3Ab2d251F",
+        "registrarAddress": "0xC613fCc3f81cC2888C5Cccc1620212420FFe4931"
+      },
+      "isUpgradable": true,
+      "admin": "0xd45de97Aeb2AC2629d41E5c0D4c0F983A3Ce984D",
+      "implementation": "0x9ad025552605C9774e958Ff74a40718087459349"
+    }
+  ]
+}
