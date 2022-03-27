@@ -56,7 +56,10 @@ const config: HardhatUserConfig = {
       url: "https://ropsten.infura.io/v3/77c3d733140f4c12a77699e24cb30c27",
     },
     rinkeby: {
-      accounts: [`${process.env.TESTNET_PRIVATE_KEY}`],
+      accounts: [
+        `${process.env.MAIN_PRIVATE_KEY}`,
+        `${process.env.ASTRO_PRIVATE_KEY}`,
+      ],
       url: "https://rinkeby.infura.io/v3/77c3d733140f4c12a77699e24cb30c27",
     },
     localhost: {
