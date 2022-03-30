@@ -37,9 +37,15 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
+      accounts: [
+        {
+          privateKey: `${process.env.TEST_KEY}`,
+          balance: "9999999999999999999999999",
+        },
+      ],
+      chainId: 4,
       forking: {
-        url: "https://eth-mainnet.alchemyapi.io/v2/MnO3SuHlzuCydPWE1XhsYZM_pHZP8_ix",
-        blockNumber: 13201766,
+        url: "https://eth-rinkeby.alchemyapi.io/v2/MnO3SuHlzuCydPWE1XhsYZM_pHZP8_ix",
       },
     },
     mainnet: {

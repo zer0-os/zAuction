@@ -85,6 +85,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     require(expireBlock > block.number, "zAuction: auction expired");
     require(minbid <= bid, "zAuction: cannot accept bid below min");
     require(bidder != msg.sender, "zAuction: cannot sell to self");
+    require(msg.sender == hub.ownerOf(tokenId), "Only Owner");
 
     IRegistrar domainRegistrar = hub.getRegistrarForDomain(tokenId);
 
@@ -276,13 +277,14 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     uint256 startBlock,
     uint256 expireBlock
   ) public view returns (bytes32 data) {
+    IRegistrar domainRegistrar = hub.getRegistrarForDomain(tokenId);
     data = keccak256(
       abi.encode(
         bidNonce,
         address(this),
         block.chainid,
         bid,
-        nftAddress,
+        address(domainRegistrar),
         tokenId,
         minbid,
         startBlock,
