@@ -23,8 +23,8 @@ const logger = getLogger("scripts::deploy-zauction");
 // const registrarAddress = "0xC613fCc3f81cC2888C5Cccc1620212420FFe4931";
 
 // Rinkeby addresses
-const tokenAddress = "0x3Ae5d499cfb8FB645708CC6DA599C90e64b33A79";
-const registrarAddress = "0xa4F6C921f914ff7972D7C55c15f015419326e0Ca";
+const tokenAddress = "0x2a3bFF78B79A009976EeA096a51A948a3dC00e34";
+const hubAddress = "0x6141d5Cb3517215A03519A464bF9C39814df7479";
 
 interface DeployedContract {
   isUpgradable: boolean;
@@ -57,7 +57,7 @@ async function main() {
 
   const instance = await upgrades.deployProxy(
     zauctionfactory,
-    [tokenAddress, registrarAddress],
+    [tokenAddress, hubAddress],
     {
       initializer: "initialize",
     }
@@ -93,7 +93,7 @@ async function main() {
     deploymentData,
     {
       tokenAddress,
-      registrarAddress,
+      hubAddress,
     },
     "rinkeby"
   );

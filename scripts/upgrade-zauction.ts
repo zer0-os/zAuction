@@ -4,8 +4,10 @@ import { getLogger } from "../utilities";
 
 const logger = getLogger("scripts::deploy-zauction");
 
-// Rinkeby addresses
-const zAuctionProxyAddress = "0xb2416Aed6f5439Ffa0eCCAaa2b643f3D9828f86B";
+// mainnet 0x1ee3F16aa8081891CfcfAB59d0DBFe03f2B77ff6
+
+// Rinkeby addresses 0xb2416Aed6f5439Ffa0eCCAaa2b643f3D9828f86B
+const zAuctionProxyAddress = "0x1ee3F16aa8081891CfcfAB59d0DBFe03f2B77ff6";
 
 async function main() {
   await run("compile");

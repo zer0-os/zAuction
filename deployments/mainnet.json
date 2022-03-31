@@ -1,0 +1,17 @@
+{
+  "zAuction": [
+    {
+      "tag": "rinkeby",
+      "address": "0x411973Fa81158A4c7767a0D6F7dF62723fDd541F",
+      "version": "d3b28e9203798aa3f6868d7687ccd50f59e5ec3b519c84acf6cd2e836b80f375",
+      "date": "2022-03-31T00:05:18.948Z",
+      "args": {
+        "tokenAddress": "0x2a3bFF78B79A009976EeA096a51A948a3dC00e34",
+        "hubAddress": "0x6141d5Cb3517215A03519A464bF9C39814df7479"
+      },
+      "isUpgradable": true,
+      "admin": "0x7c76E1e73956aAc2E4F7a56a79FDc17E5214E4f0",
+      "implementation": "0x6ae0d6548c7E3629758f87848310877B8F817935"
+    }
+  ]
+}
