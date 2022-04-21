@@ -1,0 +1,17 @@
+{
+  "zAuction": [
+    {
+      "tag": "goerli-zauction-1-gorilla-time",
+      "address": "0xdF0f9F007A38aD25E0c02959374f38719Af5fCf8",
+      "version": "d3b28e9203798aa3f6868d7687ccd50f59e5ec3b519c84acf6cd2e836b80f375",
+      "date": "2022-04-21T18:36:22.426Z",
+      "args": {
+        "tokenAddress": "0xdDd0516188a2240c864AAd7E95FF832038fa7804",
+        "defaultRegistrarThatIsNowIgnored": "0x0000000000000000000000000000000000000000"
+      },
+      "isUpgradable": true,
+      "admin": "0xB885055149A5bdDD48F8B5779FEea5217E28b3B9",
+      "implementation": "0x3Ae5d499cfb8FB645708CC6DA599C90e64b33A79"
+    }
+  ]
+}
