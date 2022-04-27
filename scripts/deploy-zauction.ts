@@ -1,5 +1,5 @@
 import { ZAuction__factory } from "./../typechain/factories/ZAuction__factory";
-import { ethers, upgrades, network, run } from "hardhat";
+import { upgrades, network, run, ethers } from "hardhat";
 
 import {
   DeploymentData,
@@ -17,14 +17,21 @@ import {
   Manifest,
 } from "@openzeppelin/upgrades-core";
 import { Contract } from "ethers";
+import { ZAuction } from "../typechain";
 const logger = getLogger("scripts::deploy-zauction");
 
 // const tokenAddress = "0x50A0A3E9873D7e7d306299a75Dc05bd3Ab2d251F"; //kovan addresses, change to correct later
 // const registrarAddress = "0xC613fCc3f81cC2888C5Cccc1620212420FFe4931";
 
 // Rinkeby addresses
-const tokenAddress = "0x2a3bFF78B79A009976EeA096a51A948a3dC00e34";
-const hubAddress = "0x6141d5Cb3517215A03519A464bF9C39814df7479";
+// const tokenAddress = "0x2a3bFF78B79A009976EeA096a51A948a3dC00e34";
+// const hubAddress = "0x6141d5Cb3517215A03519A464bF9C39814df7479";
+
+// Goerli addresses
+const tokenAddress = "0xdDd0516188a2240c864AAd7E95FF832038fa7804"; // ERC20 (WILD)
+const hubAddress = "0x35921570D157D6E9DA51e67B47d43bAF5da1e108";
+
+const defaultRegistrarThatIsNowIgnored = ethers.constants.AddressZero;
 
 interface DeployedContract {
   isUpgradable: boolean;
@@ -57,7 +64,7 @@ async function main() {
 
   const instance = await upgrades.deployProxy(
     zauctionfactory,
-    [tokenAddress, hubAddress],
+    [tokenAddress, defaultRegistrarThatIsNowIgnored],
     {
       initializer: "initialize",
     }
@@ -93,10 +100,14 @@ async function main() {
     deploymentData,
     {
       tokenAddress,
-      hubAddress,
+      defaultRegistrarThatIsNowIgnored,
     },
-    "rinkeby"
+    "goerli-zauction-1-gorilla-time"
   );
+
+  console.log(`setting zNS Hub`);
+  await (instance as ZAuction).connect(deploymentAccount).setZNSHub(hubAddress);
+
 
   if (deploymentData.implementationAddress) {
     logger.debug(`Waiting for 5 confirmations`);
