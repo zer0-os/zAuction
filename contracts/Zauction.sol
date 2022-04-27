@@ -13,14 +13,16 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   using ECDSA for bytes32;
   using SafeERC20 for IERC20;
 
+  // Default ERC20 Token
   IERC20 public token;
 
   // To avoid overriding this variable in memory on upgrades we have to keep it
   IRegistrar public registrar;
 
-  struct Listing {
+  struct Listing { // is it dangersous modifying an existing struct?
     uint256 price;
     address holder;
+    IERC20 token;
   }
 
   mapping(uint256 => Listing) public priceInfo;
@@ -35,7 +37,8 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     uint256 amount,
     address nftAddress,
     uint256 tokenId,
-    uint256 expireBlock
+    uint256 expireBlock,
+    IERC20 paymentToken
   );
 
   event DomainSold(
@@ -43,10 +46,11 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     address indexed seller,
     uint256 amount,
     address nftAddress,
-    uint256 indexed tokenId
+    uint256 indexed tokenId,
+    IERC20 paymentToken
   );
 
-  event BuyNowPriceSet(uint256 indexed tokenId, uint256 amount);
+  event BuyNowPriceSet(uint256 indexed tokenId, uint256 amount, IERC20 paymentToken);
 
   event BidCancelled(uint256 bidNonce, address indexed bidder);
 
@@ -79,7 +83,8 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     uint256 tokenId,
     uint256 minbid,
     uint256 startBlock,
-    uint256 expireBlock
+    uint256 expireBlock,
+    IERC20 paymentToken
   ) external {
     require(startBlock <= block.number, "zAuction: auction hasn't started");
     require(expireBlock > block.number, "zAuction: auction expired");
@@ -107,8 +112,11 @@ contract ZAuction is Initializable, OwnableUpgradeable {
 
     consumed[bidder][bidNonce] = true;
 
+    // If no payment token was specified, use the default
+    IERC20 usedToken = paymentToken == IERC20(address(0)) ? token : paymentToken;
+
     // Transfer payment, royalty to minter, and fee to topLevel domain
-    paymentTransfers(bidder, bid, msg.sender, getTopLevelId(tokenId), tokenId);
+    paymentTransfers(bidder, bid, msg.sender, getTopLevelId(tokenId), tokenId, usedToken);
 
     // Owner -> Bidder, send NFT
     domainRegistrar.safeTransferFrom(msg.sender, bidder, tokenId);
@@ -120,27 +128,29 @@ contract ZAuction is Initializable, OwnableUpgradeable {
       bid,
       address(domainRegistrar),
       tokenId,
-      expireBlock
+      expireBlock,
+      paymentToken
     );
   }
 
-  function setBuyPrice(uint256 amount, uint256 tokenId) external {
+  function setBuyPrice(uint256 amount, uint256 tokenId, IERC20 paymentToken) external {
     IRegistrar domainRegistrar = hub.getRegistrarForDomain(tokenId);
     address owner = domainRegistrar.ownerOf(tokenId);
     require(msg.sender == owner, "zAuction: only owner can set price");
     require(
-      priceInfo[tokenId].price != amount,
+      priceInfo[tokenId].price != amount, // also have to keep token address here?
       "zAuction: listing already exists"
     );
-    priceInfo[tokenId] = Listing(amount, owner);
-    emit BuyNowPriceSet(tokenId, amount);
+    priceInfo[tokenId] = Listing(amount, owner, paymentToken);
+    emit BuyNowPriceSet(tokenId, amount, paymentToken);
   }
 
   /// recovers buyer's signature based on seller's proposed data and, if bid data hash matches the message hash, transfers nft and payment
   /// @param amount token amount of sale
   /// @param tokenId token id we are transferring
-  function buyNow(uint256 amount, uint256 tokenId) external {
+  function buyNow(uint256 amount, uint256 tokenId, IERC20 paymentToken) external {
     require(amount == priceInfo[tokenId].price, "zAuction: wrong sale price");
+    require(paymentToken == priceInfo[tokenId].token, "zAuction: wrong payment token");
 
     IRegistrar domainRegistrar = hub.getRegistrarForDomain(tokenId);
     address seller = domainRegistrar.ownerOf(tokenId);
@@ -158,7 +168,8 @@ contract ZAuction is Initializable, OwnableUpgradeable {
       amount,
       seller,
       getTopLevelId(tokenId),
-      tokenId
+      tokenId,
+      paymentToken
     );
 
     // To disallow being shown as a sale after being already purchased, we set price to 0
@@ -172,7 +183,8 @@ contract ZAuction is Initializable, OwnableUpgradeable {
       seller,
       amount,
       address(domainRegistrar),
-      tokenId
+      tokenId,
+      paymentToken
     );
   }
 
@@ -332,7 +344,8 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     uint256 bid,
     address owner,
     uint256 topLevelId,
-    uint256 tokenId
+    uint256 tokenId,
+    IERC20 paymentToken
   ) internal {
     address topLevelOwner = hub.ownerOf(topLevelId);
     uint256 topLevelFee = calculateTopLevelDomainFee(topLevelId, bid);
@@ -341,20 +354,20 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     uint256 bidActual = bid - minterRoyalty - topLevelFee;
 
     // Bidder -> Owner, pay transaction
-    SafeERC20.safeTransferFrom(token, bidder, owner, bidActual);
+    SafeERC20.safeTransferFrom(paymentToken, bidder, owner, bidActual);
 
     IRegistrar domainRegistrar = hub.getRegistrarForDomain(tokenId);
 
     // Bidder -> Minter, pay minter royalty
     SafeERC20.safeTransferFrom(
-      token,
+      paymentToken,
       bidder,
       domainRegistrar.minterOf(tokenId),
       minterRoyalty
     );
 
     // Bidder -> topLevel Owner, pay top level owner fee
-    SafeERC20.safeTransferFrom(token, bidder, topLevelOwner, topLevelFee);
+    SafeERC20.safeTransferFrom(paymentToken, bidder, topLevelOwner, topLevelFee);
   }
 
   function getTopLevelId(uint256 tokenId) private returns (uint256) {
