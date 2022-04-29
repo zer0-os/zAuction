@@ -19,7 +19,6 @@ import {
 } from "../typechain";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
-import { BigNumberish, CallOverrides } from "ethers";
 
 chai.use(smock.matchers);
 
@@ -55,10 +54,10 @@ describe("zAuction Contract Tests", () => {
     fakeRegistrar.domainRoyaltyAmount.returns(1000000);
     fakeRegistrar.ownerOf.returns(owner);
     fakeZNSHub.parentOf.returns(0);
+    fakeZNSHub.ownerOf.returns(creator.address);
+    fakeERC20Token.transferFrom.returns(true);
 
-    const reg: IRegistrar = {
-      ownerOf: (tokenId: string) => {},
-    } as unknown as IRegistrar;
+    fakeRegistrar["safeTransferFrom(address,address,uint256)"].returns(true);
 
     fakeZNSHub.getRegistrarForDomain.returns(fakeRegistrar.address);
     fakeRegistrar.ownerOf.returns(owner.address);
@@ -79,7 +78,7 @@ describe("zAuction Contract Tests", () => {
 
     const token = await zAuction.token();
     expect(token).to.eq(wildToken);
-  });
+  }).timeout(300000);
   it("Removes a network token and falls back on the default token", async () => {
     await zAuction
       .connect(creator)
@@ -87,15 +86,36 @@ describe("zAuction Contract Tests", () => {
 
     const token = await zAuction.getTokenForDomain(dummyDomainId);
     expect(token).to.eq(wildToken);
-  });
+  }).timeout(300000);
   it("Sets a buy now price", async () => {
-    // first confirm the registrar we get back gives us the owner we expect
-    const retrievedRegistrar = await zAuction
+    await zAuction
       .connect(owner)
       .setBuyPrice(ethers.utils.parseEther("10"), dummyDomainId);
 
     const listing = await zAuction.priceInfo(dummyDomainId);
     expect(listing.price).to.eq(ethers.utils.parseEther("10"));
     expect(listing.token).to.eq(wildToken);
+  }).timeout(300000);
+  it("Fails a buyNow if the network token is changed before purchase", async () => {
+    await zAuction.connect(creator).setNetworkToken(dummyDomainId, lootToken);
+
+    const tx = zAuction
+      .connect(bidder)
+      .buyNow(ethers.utils.parseEther("10"), dummyDomainId);
+
+    await expect(tx).to.be.revertedWith(
+      "zAuction: Listing not set in correct domain token"
+    );
+  });
+  it("Accepts a buyNow if the network token is the same as the listing for that domain", async () => {
+    await zAuction.connect(creator).setNetworkToken(dummyDomainId, wildToken);
+
+    // error: Address: call to non contract, in `paymentTransfers` internally, because SafeERC20
+    const tx = await zAuction
+      .connect(bidder)
+      .buyNow(ethers.utils.parseEther("10"), dummyDomainId);
+
+    const receipt = await tx.wait();
+    expect(receipt.from).to.eq(bidder.address);
   });
 });

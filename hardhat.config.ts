@@ -39,12 +39,20 @@ const config: HardhatUserConfig = {
     hardhat: {
       accounts: [
         {
-          privateKey: `${process.env.MAINNET_PRIVATE_KEY}`,
+          privateKey: `${process.env.ASTRO_PRIVATE_KEY}`,
+          balance: "9999999999999999999999999",
+        },
+        {
+          privateKey: `${process.env.MAIN_PRIVATE_KEY}`,
+          balance: "9999999999999999999999999",
+        },
+        {
+          privateKey: `${process.env.CPTD_PRIVATE_KEY}`,
           balance: "9999999999999999999999999",
         },
       ],
       forking: {
-        url: "https://mainnet.infura.io/v3/0e6434f252a949719227b5d68caa2657",
+        url: "https://mainnet.infura.io/v3/b038070517554c7f9dab88e37d0b936a",
         blockNumber: 14490792,
       },
     },
@@ -62,7 +70,11 @@ const config: HardhatUserConfig = {
       url: "https://ropsten.infura.io/v3/77c3d733140f4c12a77699e24cb30c27",
     },
     rinkeby: {
-      accounts: [`${process.env.TESTNET_PRIVATE_KEY}`],
+      accounts: [
+        `${process.env.ASTRO_PRIVATE_KEY}`,
+        `${process.env.MAIN_PRIVATE_KEY}`,
+        `${process.env.CPTD_PRIVATE_KEY}`,
+      ],
       url: "https://rinkeby.infura.io/v3/77c3d733140f4c12a77699e24cb30c27",
     },
     localhost: {

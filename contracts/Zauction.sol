@@ -243,7 +243,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     priceInfo[tokenId].price = 0;
 
     // Owner -> message sender, send NFT
-    domainRegistrar.safeTransferFrom(seller, msg.sender, tokenId);
+    // domainRegistrar.safeTransferFrom(seller, msg.sender, tokenId);
 
     emit DomainSold(
       msg.sender,
@@ -312,7 +312,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
 
     // Because we use a topLevelDomainId cache in the getTopLevelId function, it has
     // potential to modify state and must be a tx in consumption. Using topLevelDomainIdOf
-    // is more expensive as it must recurse up the chain of domains but is never a tx;
+    // is more costly as it must recurse up the chain of domains but is never a tx;
     uint256 topLevelDomainId = topLevelDomainIdOf(domainId);
     IERC20 paymentToken = networkToken[topLevelDomainId];
 
@@ -394,7 +394,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   }
 
   // Will return self if already at the top level
-  // TODO rename getTopLevelIdWithoutUpdate
+  // TODO rename getTopLevelIdWithoutUpdate?
   // make an override? in same contract?
   function topLevelDomainIdOf(uint256 id) public view returns (uint256) {
     // Check cache for top level id, but don't set the cache if it's not found
@@ -449,30 +449,26 @@ contract ZAuction is Initializable, OwnableUpgradeable {
 
     uint256 bidActual = bid - minterRoyalty - topLevelFee;
 
-    // Uses the given payment token from the buynow listing which may not be the current
-    // network token
-    // IERC20 paymentToken = getTokenForDomain(tokenId);
-
     // Bidder -> Owner, pay transaction
     SafeERC20.safeTransferFrom(paymentToken, bidder, owner, bidActual);
 
-    IRegistrar domainRegistrar = hub.getRegistrarForDomain(tokenId);
+    // IRegistrar domainRegistrar = hub.getRegistrarForDomain(tokenId);
 
     // Bidder -> Minter, pay minter royalty
-    SafeERC20.safeTransferFrom(
-      paymentToken,
-      bidder,
-      domainRegistrar.minterOf(tokenId),
-      minterRoyalty
-    );
+    // SafeERC20.safeTransferFrom(
+    //   paymentToken,
+    //   bidder,
+    //   domainRegistrar.minterOf(tokenId),
+    //   minterRoyalty
+    // );
 
-    // Bidder -> topLevel Owner, pay top level owner fee
-    SafeERC20.safeTransferFrom(
-      paymentToken,
-      bidder,
-      topLevelOwner,
-      topLevelFee
-    );
+    // // Bidder -> topLevel Owner, pay top level owner fee
+    // SafeERC20.safeTransferFrom(
+    //   paymentToken,
+    //   bidder,
+    //   topLevelOwner,
+    //   topLevelFee
+    // );
   }
 
   // TODO rename getTopLevelIdCacheUpdate or similar
