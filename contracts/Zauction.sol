@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "hardhat/console.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -133,7 +132,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
       bidder,
       bid,
       msg.sender,
-      getTopLevelId(tokenId),
+      getTopLevelIdWithUpdate(tokenId),
       tokenId,
       domainToken
     );
@@ -153,21 +152,22 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     );
   }
 
-  // network is the same conceptually as a top level domain
+  /// Allows setting of a network token. Network is the same conceptually as a top level domain,
+  /// so a network might be 0://wilder and network token would mean that every subdomain in that network
+  /// e.g. 0://wilder.kitty will use that ERC20 token for bidding and sales.
+  /// @param networkId The top level domainId of a network
+  /// @param newNetworkToken The token to set for purchases of subdomains in that network
   function setNetworkToken(uint256 networkId, IERC20 newNetworkToken)
     external
     onlyOwner
   {
-    // could be problematic onlyOwner? what if we want other network owners to set?
-    // is naming "network" confusing? should use `topLevelDomain` for conceptual consistency?
-    // or vice versa? change `topLevelDomain` to be `network domain` or similar?
-
     // Setting to 0 will cause the system to fall back onto the default token
     require(networkToken[networkId] != newNetworkToken, "No state change");
     networkToken[networkId] = newNetworkToken;
   }
 
-  // Admin modify default token
+  /// Admin modify default token
+  /// @param newDefaultToken The new default ERC20 token to use
   function setDefaultToken(IERC20 newDefaultToken) external onlyOwner {
     require(
       newDefaultToken != IERC20(address(0)),
@@ -176,14 +176,9 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     token = newDefaultToken;
   }
 
-  // TODO delete
-  function testStuff(uint256 tokenId) external view returns (address) {
-    IRegistrar domainRegistrar = hub.getRegistrarForDomain(tokenId);
-    address owner = domainRegistrar.ownerOf(tokenId);
-    return owner;
-  }
-
-  // Allows for setting the buyNow price of a domain in either the network token or default token
+  /// Allows for setting the buyNow price of a domain in either the network token or default token
+  /// @param amount The price to be set
+  /// @param tokenId The domain token to be put up for sale
   function setBuyPrice(uint256 amount, uint256 tokenId) external {
     IRegistrar domainRegistrar = hub.getRegistrarForDomain(tokenId);
     address owner = domainRegistrar.ownerOf(tokenId);
@@ -213,7 +208,6 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     // a buy price is set and the time it is accepted. If this is so,
     // we can't perform a buyNow sale as it is not set in the updated
     //token.
-
     IERC20 paymentToken = priceInfo[tokenId].token;
     IERC20 domainToken = getTokenForDomain(tokenId);
     require(
@@ -235,7 +229,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
       msg.sender,
       amount,
       seller,
-      getTopLevelId(tokenId),
+      getTopLevelIdWithUpdate(tokenId),
       tokenId,
       paymentToken
     );
@@ -244,7 +238,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     priceInfo[tokenId].price = 0;
 
     // Owner -> message sender, send NFT
-    // domainRegistrar.safeTransferFrom(seller, msg.sender, tokenId);
+    domainRegistrar.safeTransferFrom(seller, msg.sender, tokenId);
 
     emit DomainSold(
       msg.sender,
@@ -311,10 +305,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   function getTokenForDomain(uint256 domainId) public view returns (IERC20) {
     require(domainId != 0, "Must provide a valid domainTokenId");
 
-    // Because we use a topLevelDomainId cache in the getTopLevelId function, it has
-    // potential to modify state and must be a tx in consumption. Using topLevelDomainIdOf
-    // is more costly as it must recurse up the chain of domains but is never a tx;
-    uint256 topLevelDomainId = topLevelDomainIdOf(domainId);
+    uint256 topLevelDomainId = getTopLevelId(domainId);
     IERC20 paymentToken = networkToken[topLevelDomainId];
 
     // If value is unset, or set to 0 intentionally, we return the default
@@ -394,21 +385,21 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     return data;
   }
 
-  // Will return self if already at the top level
-  // TODO rename getTopLevelIdWithoutUpdate?
-  // make an override? in same contract?
-  function topLevelDomainIdOf(uint256 id) public view returns (uint256) {
-    // Check cache for top level id, but don't set the cache if it's not found
-    uint256 topLevelDomainId = topLevelDomainIdCache[id];
+  /// Get the top level domain ID of a given domain. Will return self if already the top level.
+  /// Note will not update the cache once found, this is to keep it a view function. To force
+  /// updating the cache, instead use getTopLevelIdWithUpdate(uint256) below
+  ///
+  /// @param tokenId The domain ID to get the top level domain for.
+  function getTopLevelId(uint256 tokenId) public view returns (uint256) {
+    uint256 topLevelDomainId = topLevelDomainIdCache[tokenId];
     if (topLevelDomainId != 0) {
       return topLevelDomainId;
     }
 
-    // Otherwise we climb the domain tree to find it
-    uint256 parentId = hub.parentOf(id);
-    uint256 holder = id;
+    uint256 parentId = hub.parentOf(tokenId);
+    uint256 holder = tokenId;
     while (parentId != 0) {
-      holder = parentId; // Hold on to previous parent
+      holder = parentId;
       parentId = hub.parentOf(parentId);
     }
     return holder;
@@ -451,33 +442,33 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     uint256 bidActual = bid - minterRoyalty - topLevelFee;
 
     // Bidder -> Owner, pay transaction
-    console.log("token: %s", address(paymentToken));
     SafeERC20.safeTransferFrom(paymentToken, bidder, owner, bidActual);
 
-    // IRegistrar domainRegistrar = hub.getRegistrarForDomain(tokenId);
+    IRegistrar domainRegistrar = hub.getRegistrarForDomain(tokenId);
 
     // Bidder -> Minter, pay minter royalty
-    // SafeERC20.safeTransferFrom(
-    //   paymentToken,
-    //   bidder,
-    //   domainRegistrar.minterOf(tokenId),
-    //   minterRoyalty
-    // );
+    SafeERC20.safeTransferFrom(
+      paymentToken,
+      bidder,
+      domainRegistrar.minterOf(tokenId),
+      minterRoyalty
+    );
 
-    // // Bidder -> topLevel Owner, pay top level owner fee
-    // SafeERC20.safeTransferFrom(
-    //   paymentToken,
-    //   bidder,
-    //   topLevelOwner,
-    //   topLevelFee
-    // );
+    // Bidder -> topLevel Owner, pay top level owner fee
+    SafeERC20.safeTransferFrom(
+      paymentToken,
+      bidder,
+      topLevelOwner,
+      topLevelFee
+    );
   }
 
-  // TODO rename getTopLevelIdCacheUpdate or similar
-  function getTopLevelId(uint256 tokenId) private returns (uint256) {
+  /// Get top level domain id for a domain. Update the cache once this is found.
+  /// @param tokenId The id to get the top level owner of
+  function getTopLevelIdWithUpdate(uint256 tokenId) private returns (uint256) {
     uint256 topLevelId = topLevelDomainIdCache[tokenId];
     if (topLevelId == 0) {
-      topLevelId = topLevelDomainIdOf(tokenId);
+      topLevelId = getTopLevelId(tokenId);
       topLevelDomainIdCache[tokenId] = topLevelId;
     }
     return topLevelId;
