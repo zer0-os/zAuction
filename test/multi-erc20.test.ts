@@ -31,12 +31,11 @@ describe("zAuction Contract Tests", () => {
   let mockZauction: MockContract<ZAuction>;
 
   // Interfaces can't deploy from the factory
-  let fakeERC20Token: FakeContract<IERC20>;
+  let fakeDefaultToken: FakeContract<IERC20>;
+  let fakeNetworkToken: FakeContract<IERC20>;
   let fakeRegistrar: FakeContract<IRegistrar>;
   let fakeZNSHub: FakeContract<IZNSHub>;
 
-  const wildToken = "0x3Ae5d499cfb8FB645708CC6DA599C90e64b33A79";
-  const lootToken = "0x5bAbCA2Af93A9887C86161083b8A90160DA068f2";
   const dummyDomainId =
     "0x617b3c878abfceb89eb62b7a24f393569c822946bbc9175c6c65a7d2647c5402";
 
@@ -46,7 +45,8 @@ describe("zAuction Contract Tests", () => {
     bidder = signers[1];
     owner = signers[2];
 
-    fakeERC20Token = await smock.fake(IERC20__factory.abi);
+    fakeDefaultToken = await smock.fake(IERC20__factory.abi);
+    fakeNetworkToken = await smock.fake(IERC20__factory.abi);
     fakeRegistrar = await smock.fake(IRegistrar__factory.abi);
     fakeZNSHub = await smock.fake(IZNSHub__factory.abi);
 
@@ -55,7 +55,7 @@ describe("zAuction Contract Tests", () => {
     fakeRegistrar.ownerOf.returns(owner);
     fakeZNSHub.parentOf.returns(0);
     fakeZNSHub.ownerOf.returns(creator.address);
-    fakeERC20Token.transferFrom.returns(true);
+    fakeDefaultToken.transferFrom.returns(true);
 
     fakeRegistrar["safeTransferFrom(address,address,uint256)"].returns(true);
 
@@ -64,14 +64,16 @@ describe("zAuction Contract Tests", () => {
 
     const zAuctionFactory = new ZAuction__factory(creator);
     zAuction = await zAuctionFactory.deploy();
-    await zAuction.initialize(fakeERC20Token.address, fakeZNSHub.address);
+    await zAuction.initialize(fakeDefaultToken.address, fakeZNSHub.address);
     await zAuction.connect(creator).setZNSHub(fakeZNSHub.address);
   });
   it("Sets a network token", async () => {
-    await zAuction.connect(creator).setNetworkToken(dummyDomainId, lootToken);
+    await zAuction
+      .connect(creator)
+      .setNetworkToken(dummyDomainId, fakeNetworkToken.address);
 
     const token = await zAuction.getTokenForDomain(dummyDomainId);
-    expect(token).to.eq(lootToken);
+    expect(token).to.eq(fakeNetworkToken.address);
   }).timeout(300000);
   it("Sets a default token", async () => {
     await zAuction.connect(creator).setDefaultToken(wildToken);
@@ -108,7 +110,9 @@ describe("zAuction Contract Tests", () => {
     );
   });
   it("Accepts a buyNow if the network token is the same as the listing for that domain", async () => {
-    await zAuction.connect(creator).setNetworkToken(dummyDomainId, wildToken);
+    await zAuction
+      .connect(creator)
+      .setNetworkToken(dummyDomainId, fakeDefaultToken.address);
 
     // error: Address: call to non contract, in `paymentTransfers` internally, because SafeERC20
     const tx = await zAuction

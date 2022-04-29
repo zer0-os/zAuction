@@ -7,6 +7,7 @@ import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
 import "solidity-coverage";
+import { removeConsoleLog } from "hardhat-preprocessor";
 
 task("accounts", "Prints the list of accounts", async (args, hre) => {
   const accounts = await hre.ethers.getSigners();
@@ -88,8 +89,18 @@ const config: HardhatUserConfig = {
       },
     },
   },
+  typechain: {
+    outDir: "typechain",
+    target: "ethers-v5",
+  },
   etherscan: {
     apiKey: "FZ1ANB251FC8ISFDXFGFCUDCANSJNWPF9Q",
+  },
+  preprocess: {
+    eachLine: removeConsoleLog(
+      (hre) =>
+        hre.network.name !== "hardhat" && hre.network.name !== "localhost"
+    ),
   },
 };
 export default config;

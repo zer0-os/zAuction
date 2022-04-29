@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+import "hardhat/console.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -450,6 +451,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     uint256 bidActual = bid - minterRoyalty - topLevelFee;
 
     // Bidder -> Owner, pay transaction
+    console.log("token: %s", address(paymentToken));
     SafeERC20.safeTransferFrom(paymentToken, bidder, owner, bidActual);
 
     // IRegistrar domainRegistrar = hub.getRegistrarForDomain(tokenId);
