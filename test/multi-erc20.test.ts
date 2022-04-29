@@ -57,6 +57,7 @@ describe("zAuction Contract Tests", () => {
     fakeNetworkToken.transferFrom.returns(true);
     fakeZNSHub.getRegistrarForDomain.returns(fakeRegistrar.address);
     fakeRegistrar.ownerOf.returns(owner.address);
+    fakeRegistrar.ownerOf.returns;
 
     const zAuctionFactory = new ZAuction__factory(creator);
     zAuction = await zAuctionFactory.deploy();
@@ -70,13 +71,13 @@ describe("zAuction Contract Tests", () => {
 
     const token = await zAuction.getTokenForDomain(dummyDomainId);
     expect(token).to.eq(fakeNetworkToken.address);
-  }).timeout(300000);
+  });
   it("Sets a default token", async () => {
     await zAuction.connect(creator).setDefaultToken(fakeDefaultToken.address);
 
     const token = await zAuction.token();
     expect(token).to.eq(fakeDefaultToken.address);
-  }).timeout(300000);
+  });
   it("Removes a network token and falls back on the default token", async () => {
     await zAuction
       .connect(creator)
@@ -84,7 +85,7 @@ describe("zAuction Contract Tests", () => {
 
     const token = await zAuction.getTokenForDomain(dummyDomainId);
     expect(token).to.eq(fakeDefaultToken.address);
-  }).timeout(300000);
+  });
   it("Sets a buy now price", async () => {
     await zAuction
       .connect(owner)
@@ -93,7 +94,7 @@ describe("zAuction Contract Tests", () => {
     const listing = await zAuction.priceInfo(dummyDomainId);
     expect(listing.price).to.eq(ethers.utils.parseEther("10"));
     expect(listing.token).to.eq(fakeDefaultToken.address);
-  }).timeout(300000);
+  });
   it("Fails a buyNow if the network token is changed before purchase", async () => {
     await zAuction
       .connect(creator)
@@ -118,7 +119,7 @@ describe("zAuction Contract Tests", () => {
 
     const receipt = await tx.wait();
     expect(receipt.from).to.eq(bidder.address);
-  }).timeout(300000);
+  });
   it("Fails to accept a bid if the wrong token is used", async () => {
     const params = {
       bidNonce: "4771690347",
@@ -162,5 +163,44 @@ describe("zAuction Contract Tests", () => {
     await expect(tx).to.be.revertedWith(
       "zAuction: Only bids made with the networks token can be accepted"
     );
+  });
+  it("Accepts a bid when the right token is used", async () => {
+    const params = {
+      bidNonce: "4771690347",
+      bid: ethers.utils.parseEther("123"),
+      tokenId: "0x1",
+      minBid: "0",
+      startBlock: "0",
+      expireBlock: "999999999999",
+    };
+    fakeZNSHub.parentOf.whenCalledWith(params.tokenId).returns(dummyDomainId);
+    fakeZNSHub.ownerOf.whenCalledWith(params.tokenId).returns(owner.address);
+    const bidToSign = await zAuction.createBid(
+      params.bidNonce,
+      params.bid,
+      fakeRegistrar.address,
+      params.tokenId,
+      params.minBid,
+      params.startBlock,
+      params.expireBlock
+    );
+    const signature = await bidder.signMessage(
+      ethers.utils.arrayify(bidToSign)
+    );
+    const tx = await zAuction.connect(owner).acceptBid(
+      signature,
+      params.bidNonce,
+      bidder.address,
+      params.bid,
+      params.tokenId,
+      params.minBid,
+      params.startBlock,
+      params.expireBlock,
+      fakeDefaultToken.address // right address
+    );
+    const receipt = await tx.wait();
+    expect(receipt.events);
+    expect(receipt.events?.length).to.eq(1); // BidAccepted
+    expect(receipt.from).to.eq(owner.address);
   });
 });
