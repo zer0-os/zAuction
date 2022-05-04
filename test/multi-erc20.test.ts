@@ -26,6 +26,7 @@ describe("zAuction Contract Tests", () => {
   // Interfaces can't deploy from the factory
   let fakeDefaultToken: FakeContract<IERC20>;
   let fakeNetworkToken: FakeContract<IERC20>;
+  let fakeWildToken: FakeContract<IERC20>;
   let fakeRegistrar: FakeContract<IRegistrar>;
   let fakeZNSHub: FakeContract<IZNSHub>;
 
@@ -40,6 +41,7 @@ describe("zAuction Contract Tests", () => {
 
     fakeDefaultToken = await smock.fake(IERC20__factory.abi);
     fakeNetworkToken = await smock.fake(IERC20__factory.abi);
+    fakeWildToken = await smock.fake(IERC20__factory.abi);
     fakeRegistrar = await smock.fake(IRegistrar__factory.abi);
     fakeZNSHub = await smock.fake(IZNSHub__factory.abi);
 
@@ -50,6 +52,7 @@ describe("zAuction Contract Tests", () => {
     fakeZNSHub.ownerOf.returns(creator.address);
     fakeDefaultToken.transferFrom.returns(true);
     fakeNetworkToken.transferFrom.returns(true);
+    fakeWildToken.transferFrom.returns(true);
     fakeZNSHub.getRegistrarForDomain.returns(fakeRegistrar.address);
     fakeRegistrar.ownerOf.returns(owner.address);
     fakeRegistrar.ownerOf.returns;
@@ -116,7 +119,7 @@ describe("zAuction Contract Tests", () => {
     const receipt = await tx.wait();
     expect(receipt.from).to.eq(bidder.address);
   });
-  it("Fails to accept a bid if the wrong token is used", async () => {
+  it("Fails acceptBidV2 if the wrong token is used", async () => {
     const params = {
       bidNonce: "4771690347",
       bid: ethers.utils.parseEther("123"),
@@ -162,7 +165,7 @@ describe("zAuction Contract Tests", () => {
       "zAuction: Only bids made with the network's token can be accepted"
     );
   });
-  it("Fails to accept a bid if the wrong token is used", async () => {
+  it("Accepts a legacy bid with hardcoded wild token value", async () => {
     const params = {
       bidNonce: "4771690347",
       bid: ethers.utils.parseEther("123"),
@@ -176,7 +179,10 @@ describe("zAuction Contract Tests", () => {
     fakeZNSHub.ownerOf.whenCalledWith(params.tokenId).returns(owner.address);
     fakeRegistrar.minterOf.whenCalledWith("0x1").returns(owner.address);
 
-    // Doesn't matter what bidtoken was used to create the bid initially
+    await zAuction.connect(creator).setWildToken(fakeWildToken.address);
+
+    // Legacy bids are always with WILD, but signed message doesn't include that
+    // so use AddressZero
     const bidToSign = await zAuction.createBid(
       params.bidNonce,
       params.bid,
@@ -191,7 +197,7 @@ describe("zAuction Contract Tests", () => {
       ethers.utils.arrayify(bidToSign)
     );
 
-    const tx = zAuction
+    const tx = await zAuction
       .connect(owner)
       .acceptBid(
         signature,
@@ -203,12 +209,11 @@ describe("zAuction Contract Tests", () => {
         params.startBlock,
         params.expireBlock
       );
-
-    await expect(tx).to.be.revertedWith(
-      "zAuction: Only bids made with the network's token can be accepted"
-    );
+    const receipt = await tx.wait();
+    expect(receipt.events?.length).to.eq(1); // BidAccepted
+    expect(receipt.from).to.eq(owner.address);
   });
-  it("Fails when the token given matches the domain token but not the token of the original bid", async () => {
+  it("Fails when the token given matches the domain network token but not the token of the original bid", async () => {
     const params = {
       bidNonce: "4771690347",
       bid: ethers.utils.parseEther("123"),
@@ -289,7 +294,6 @@ describe("zAuction Contract Tests", () => {
         fakeDefaultToken.address
       );
     const receipt = await tx.wait();
-    expect(receipt.events);
     expect(receipt.events?.length).to.eq(1); // BidAccepted
     expect(receipt.from).to.eq(owner.address);
   });
