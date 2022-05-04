@@ -7,6 +7,7 @@
     "avoid-sha3": "warn",
     "prettier/prettier": "warn",
     "compiler-version": ["error", "^0.8.4"],
-    "func-visibility": ["warn", { "ignoreConstructors": true }]
+    "func-visibility": ["warn", { "ignoreConstructors": true }],
+    "reason-string": ["warn", { "maxLength": 64 }]
   }
 }

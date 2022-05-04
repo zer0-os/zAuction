@@ -14,7 +14,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   using SafeERC20 for IERC20;
 
   // Default ERC20 Token
-  IERC20 public token;
+  IERC20 public defaultToken;
 
   // To avoid overriding this variable in memory on upgrades we have to keep it
   IRegistrar public registrar;
@@ -38,7 +38,8 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     address nftAddress,
     uint256 tokenId,
     uint256 expireBlock,
-    IERC20 paymentToken
+    address paymentToken,
+    uint256 topLevelDomainId
   );
 
   event DomainSold(
@@ -47,13 +48,14 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     uint256 amount,
     address nftAddress,
     uint256 indexed tokenId,
-    IERC20 paymentToken
+    address paymentToken,
+    uint256 topLevelDomainId
   );
 
   event BuyNowPriceSet(
     uint256 indexed tokenId,
     uint256 amount,
-    IERC20 paymentToken
+    address paymentToken
   );
 
   event BidCancelled(uint256 bidNonce, address indexed bidder);
@@ -69,7 +71,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     initializer
   {
     __Ownable_init();
-    token = tokenAddress;
+    defaultToken = tokenAddress;
     registrar = registrarAddress;
   }
 
@@ -82,8 +84,81 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   /// @param minbid minimum bid allowed
   /// @param startBlock block number at which acceptBid starts working
   /// @param expireBlock block number at which acceptBid stops working
-  /// @param bidToken the token used in payment for the bid
   function acceptBid(
+    bytes memory signature,
+    uint256 bidNonce,
+    address bidder,
+    uint256 bid,
+    uint256 tokenId,
+    uint256 minbid,
+    uint256 startBlock,
+    uint256 expireBlock
+  ) external {
+    require(startBlock <= block.number, "zAuction: auction hasn't started");
+    require(expireBlock > block.number, "zAuction: auction expired");
+    require(minbid <= bid, "zAuction: cannot accept bid below min");
+    require(bidder != msg.sender, "zAuction: cannot sell to self");
+    require(msg.sender == hub.ownerOf(tokenId), "Only Owner");
+
+    IRegistrar domainRegistrar = hub.getRegistrarForDomain(tokenId);
+
+    // Don't include a token address when recreating bid data for legacy bids
+    bytes32 data = createBid(
+      bidNonce,
+      bid,
+      tokenId,
+      minbid,
+      startBlock,
+      expireBlock,
+      address(0)
+    );
+
+    require(
+      bidder == recover(toEthSignedMessageHash(data), signature),
+      "zAuction: recovered incorrect bidder"
+    );
+    require(!consumed[bidder][bidNonce], "zAuction: data already consumed");
+
+    consumed[bidder][bidNonce] = true;
+
+    uint256 topLevelDomainId = getTopLevelIdWithUpdate(tokenId);
+    // Transfer payment, royalty to minter, and fee to topLevel domain
+    paymentTransfers(
+      bidder,
+      bid,
+      msg.sender,
+      topLevelDomainId,
+      tokenId,
+      defaultToken
+    );
+
+    // Owner -> Bidder, send NFT
+    domainRegistrar.safeTransferFrom(msg.sender, bidder, tokenId);
+
+    emit BidAccepted(
+      bidNonce,
+      bidder,
+      msg.sender,
+      bid,
+      address(domainRegistrar),
+      tokenId,
+      expireBlock,
+      address(defaultToken),
+      topLevelDomainId
+    );
+  }
+
+  // Accept a bid but with the addition of a bidToken parameter to support v2.1 changes
+  /// @param signature type encoded message signed by the bidder
+  /// @param bidNonce unique per address auction identifier chosen by seller
+  /// @param bidder address of who the seller says the bidder is, for confirmation of the recovered bidder
+  /// @param bid token amount bid
+  /// @param tokenId token id we are transferring
+  /// @param minbid minimum bid allowed
+  /// @param startBlock block number at which acceptBid starts working
+  /// @param expireBlock block number at which acceptBid stops working
+  /// @param bidToken the token used in payment for the bid
+  function acceptBidV2(
     bytes memory signature,
     uint256 bidNonce,
     address bidder,
@@ -104,7 +179,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     IERC20 domainToken = getTokenForDomain(tokenId);
     require(
       domainToken == bidToken,
-      "zAuction: Only bids made with the networks token can be accepted"
+      "zAuction: Only bids made with the network's token can be accepted"
     );
 
     IRegistrar domainRegistrar = hub.getRegistrarForDomain(tokenId);
@@ -112,11 +187,11 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     bytes32 data = createBid(
       bidNonce,
       bid,
-      address(domainRegistrar),
       tokenId,
       minbid,
       startBlock,
-      expireBlock
+      expireBlock,
+      address(bidToken)
     );
 
     require(
@@ -127,14 +202,15 @@ contract ZAuction is Initializable, OwnableUpgradeable {
 
     consumed[bidder][bidNonce] = true;
 
-    // Transfer payment, royalty to minter, and fee to topLevel domain
+    uint256 topLevelDomainId = getTopLevelIdWithUpdate(tokenId);
+    // Transfer payment, royalty to minter, and fee to topLevel domain owner
     paymentTransfers(
       bidder,
       bid,
       msg.sender,
-      getTopLevelIdWithUpdate(tokenId),
+      topLevelDomainId,
       tokenId,
-      domainToken
+      bidToken
     );
 
     // Owner -> Bidder, send NFT
@@ -148,22 +224,26 @@ contract ZAuction is Initializable, OwnableUpgradeable {
       address(domainRegistrar),
       tokenId,
       expireBlock,
-      domainToken
+      address(bidToken),
+      topLevelDomainId
     );
   }
 
   /// Allows setting of a network token. Network is the same conceptually as a top level domain,
   /// so a network might be 0://wilder and network token would mean that every subdomain in that network
   /// e.g. 0://wilder.kitty will use that ERC20 token for bidding and sales.
-  /// @param networkId The top level domainId of a network
-  /// @param newNetworkToken The token to set for purchases of subdomains in that network
-  function setNetworkToken(uint256 networkId, IERC20 newNetworkToken)
+  /// @param domainNetworkId The top level domainId of a network
+  /// @param domainNetworkToken The token to set for purchases of subdomains in that network
+  function setNetworkToken(uint256 domainNetworkId, IERC20 domainNetworkToken)
     external
     onlyOwner
   {
     // Setting to 0 will cause the system to fall back onto the default token
-    require(networkToken[networkId] != newNetworkToken, "No state change");
-    networkToken[networkId] = newNetworkToken;
+    require(
+      networkToken[domainNetworkId] != domainNetworkToken,
+      "No state change"
+    );
+    networkToken[domainNetworkId] = domainNetworkToken;
   }
 
   /// Admin modify default token
@@ -173,7 +253,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
       newDefaultToken != IERC20(address(0)),
       "Must provide a valid default token"
     );
-    token = newDefaultToken;
+    defaultToken = newDefaultToken;
   }
 
   /// Allows for setting the buyNow price of a domain in either the network token or default token
@@ -194,7 +274,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     IERC20 paymentToken = getTokenForDomain(tokenId);
 
     priceInfo[tokenId] = Listing(amount, owner, paymentToken);
-    emit BuyNowPriceSet(tokenId, amount, paymentToken);
+    emit BuyNowPriceSet(tokenId, amount, address(paymentToken));
   }
 
   /// recovers buyer's signature based on seller's proposed data and, if bid data hash matches the message hash, transfers nft and payment
@@ -234,6 +314,8 @@ contract ZAuction is Initializable, OwnableUpgradeable {
       paymentToken
     );
 
+    uint256 topLevelId = getTopLevelIdWithUpdate(tokenId);
+
     // To disallow being shown as a sale after being already purchased, we set price to 0
     priceInfo[tokenId].price = 0;
 
@@ -246,7 +328,8 @@ contract ZAuction is Initializable, OwnableUpgradeable {
       amount,
       address(domainRegistrar),
       tokenId,
-      paymentToken
+      address(paymentToken),
+      topLevelId
     );
   }
 
@@ -288,7 +371,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   /// Amount given should be as a percent with 5 decimals of precision
   /// e.g. 10% (max) is 1000000, 0.0001% (min) is 1
   /// @param id The id of the domain to update
-  /// @param amount The
+  /// @param amount The amount to set
   function setTopLevelDomainFee(uint256 id, uint256 amount) public {
     require(
       msg.sender == hub.ownerOf(id),
@@ -303,16 +386,16 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   /// or immediate buying.
   /// @param domainId The id of the domain to get an ERC20 token for
   function getTokenForDomain(uint256 domainId) public view returns (IERC20) {
-    require(domainId != 0, "Must provide a valid domainTokenId");
+    require(domainId != 0, "Must provide a valid domainId");
 
     uint256 topLevelDomainId = getTopLevelId(domainId);
-    IERC20 paymentToken = networkToken[topLevelDomainId];
+    IERC20 domainToken = networkToken[topLevelDomainId];
 
     // If value is unset, or set to 0 intentionally, we return the default
-    if (paymentToken == IERC20(address(0))) {
-      return token;
+    if (domainToken == IERC20(address(0))) {
+      return defaultToken;
     } else {
-      return paymentToken;
+      return domainToken;
     }
   }
 
@@ -327,7 +410,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     require(topLevelId > 0, "zAuction: must provide a valid id");
     require(bid > 0, "zAuction: Cannot calculate domain fee on an empty bid");
 
-    // Find what percent they've specified as a royalty
+    // Find what percent is specified as a top level fee
     uint256 fee = topLevelDomainFee[topLevelId];
     if (fee == 0) return 0;
 
@@ -354,35 +437,55 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   /// Create a bid object hashed with the current contract address
   /// @param bidNonce unique per address bid identifier chosen by seller
   /// @param bid token amount bid
-  /// @param nftAddress address of the nft contract
   /// @param tokenId token id we are transferring
   /// @param minbid minimum bid allowed
   /// @param startBlock block number at which acceptBid starts working
   /// @param expireBlock block number at which acceptBid stops working
+  /// @param bidToken The token used in that bid, 0 for legacy bids
   function createBid(
     uint256 bidNonce,
     uint256 bid,
-    address nftAddress,
     uint256 tokenId,
     uint256 minbid,
     uint256 startBlock,
-    uint256 expireBlock
+    uint256 expireBlock,
+    address bidToken
   ) public view returns (bytes32 data) {
     IRegistrar domainRegistrar = hub.getRegistrarForDomain(tokenId);
-    data = keccak256(
-      abi.encode(
-        bidNonce,
-        address(this),
-        block.chainid,
-        bid,
-        address(domainRegistrar),
-        tokenId,
-        minbid,
-        startBlock,
-        expireBlock
-      )
-    );
-    return data;
+
+    // If a legacy bid we don't include the token address in hash
+    if (bidToken == address(0)) {
+      return
+        keccak256(
+          abi.encode(
+            bidNonce,
+            address(this),
+            block.chainid,
+            bid,
+            address(domainRegistrar),
+            tokenId,
+            minbid,
+            startBlock,
+            expireBlock
+          )
+        );
+    } else {
+      return
+        keccak256(
+          abi.encode(
+            bidNonce,
+            address(this),
+            block.chainid,
+            bid,
+            address(domainRegistrar),
+            tokenId,
+            minbid,
+            startBlock,
+            expireBlock,
+            bidToken
+          )
+        );
+    }
   }
 
   /// Get the top level domain ID of a given domain. Will return self if already the top level.
@@ -427,6 +530,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   /// @param owner address of the owner of that domain pre-transfer
   /// @param topLevelId the ID of the top level domain for a given domain or subdomain
   /// @param tokenId the ID of the domain
+  /// @param paymentToken The token of the network for that domain, used for payment in bids
   function paymentTransfers(
     address bidder,
     uint256 bid,
