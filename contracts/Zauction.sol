@@ -66,6 +66,9 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   // Map top level domain ID to the ERC20 token used for that network.
   mapping(uint256 => IERC20) public networkToken;
 
+  // Hardcoded address of the wild token for legacy bids only
+  IERC20 private wildToken;
+
   function initialize(IERC20 tokenAddress, IRegistrar registrarAddress)
     public
     initializer
@@ -80,7 +83,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   /// @param bidNonce unique per address auction identifier chosen by seller
   /// @param bidder address of who the seller says the bidder is, for confirmation of the recovered bidder
   /// @param bid token amount bid
-  /// @param tokenId token id we are transferring
+  /// @param domainTokenId token id we are transferring
   /// @param minbid minimum bid allowed
   /// @param startBlock block number at which acceptBid starts working
   /// @param expireBlock block number at which acceptBid stops working
@@ -89,7 +92,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     uint256 bidNonce,
     address bidder,
     uint256 bid,
-    uint256 tokenId,
+    uint256 domainTokenId,
     uint256 minbid,
     uint256 startBlock,
     uint256 expireBlock
@@ -98,15 +101,15 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     require(expireBlock > block.number, "zAuction: auction expired");
     require(minbid <= bid, "zAuction: cannot accept bid below min");
     require(bidder != msg.sender, "zAuction: cannot sell to self");
-    require(msg.sender == hub.ownerOf(tokenId), "Only Owner");
+    require(msg.sender == hub.ownerOf(domainTokenId), "Only Owner");
 
-    IRegistrar domainRegistrar = hub.getRegistrarForDomain(tokenId);
+    IRegistrar domainRegistrar = hub.getRegistrarForDomain(domainTokenId);
 
     // Don't include a token address when recreating bid data for legacy bids
     bytes32 data = createBid(
       bidNonce,
       bid,
-      tokenId,
+      domainTokenId,
       minbid,
       startBlock,
       expireBlock,
@@ -121,19 +124,19 @@ contract ZAuction is Initializable, OwnableUpgradeable {
 
     consumed[bidder][bidNonce] = true;
 
-    uint256 topLevelDomainId = getTopLevelIdWithUpdate(tokenId);
+    uint256 topLevelDomainId = getTopLevelIdWithUpdate(domainTokenId);
     // Transfer payment, royalty to minter, and fee to topLevel domain
     paymentTransfers(
       bidder,
       bid,
       msg.sender,
       topLevelDomainId,
-      tokenId,
-      defaultToken
+      domainTokenId,
+      wildToken
     );
 
     // Owner -> Bidder, send NFT
-    domainRegistrar.safeTransferFrom(msg.sender, bidder, tokenId);
+    domainRegistrar.safeTransferFrom(msg.sender, bidder, domainTokenId);
 
     emit BidAccepted(
       bidNonce,
@@ -141,9 +144,9 @@ contract ZAuction is Initializable, OwnableUpgradeable {
       msg.sender,
       bid,
       address(domainRegistrar),
-      tokenId,
+      domainTokenId,
       expireBlock,
-      address(defaultToken),
+      address(wildToken),
       topLevelDomainId
     );
   }
@@ -241,9 +244,16 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     // Setting to 0 will cause the system to fall back onto the default token
     require(
       networkToken[domainNetworkId] != domainNetworkToken,
-      "No state change"
+      "zAuction: No state change"
     );
     networkToken[domainNetworkId] = domainNetworkToken;
+  }
+
+  /// Set the value of the hardcoded IERC20 wildToken to be used in legacy bids
+  /// @param token The WILD token address
+  function setWildToken(IERC20 token) external onlyOwner {
+    require(token != wildToken, "zAuction: No state change");
+    wildToken = token;
   }
 
   /// Admin modify default token
@@ -251,7 +261,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   function setDefaultToken(IERC20 newDefaultToken) external onlyOwner {
     require(
       newDefaultToken != IERC20(address(0)),
-      "Must provide a valid default token"
+      "zAuction: Must provide a valid default token"
     );
     defaultToken = newDefaultToken;
   }
@@ -372,7 +382,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   /// e.g. 10% (max) is 1000000, 0.0001% (min) is 1
   /// @param id The id of the domain to update
   /// @param amount The amount to set
-  function setTopLevelDomainFee(uint256 id, uint256 amount) public {
+  function setTopLevelDomainFee(uint256 id, uint256 amount) external {
     require(
       msg.sender == hub.ownerOf(id),
       "zAuction: Cannot set fee on unowned domain"
@@ -386,7 +396,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   /// or immediate buying.
   /// @param domainId The id of the domain to get an ERC20 token for
   function getTokenForDomain(uint256 domainId) public view returns (IERC20) {
-    require(domainId != 0, "Must provide a valid domainId");
+    require(domainId != 0, "zAuction: Must provide a valid domainId");
 
     uint256 topLevelDomainId = getTopLevelId(domainId);
     IERC20 domainToken = networkToken[topLevelDomainId];
@@ -491,7 +501,6 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   /// Get the top level domain ID of a given domain. Will return self if already the top level.
   /// Note will not update the cache once found, this is to keep it a view function. To force
   /// updating the cache, instead use getTopLevelIdWithUpdate(uint256) below
-  ///
   /// @param tokenId The domain ID to get the top level domain for.
   function getTopLevelId(uint256 tokenId) public view returns (uint256) {
     uint256 topLevelDomainId = topLevelDomainIdCache[tokenId];
