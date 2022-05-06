@@ -59,7 +59,8 @@ describe("zAuction Contract Tests", () => {
 
     const zAuctionFactory = new ZAuction__factory(creator);
     zAuction = await zAuctionFactory.deploy();
-    await zAuction.initialize(fakeDefaultToken.address, fakeZNSHub.address);
+    await zAuction.initialize(fakeWildToken.address, fakeZNSHub.address);
+    await zAuction.setWildToken(fakeWildToken.address);
     await zAuction.connect(creator).setZNSHub(fakeZNSHub.address);
   });
   it("Sets a network token", async () => {
@@ -67,13 +68,15 @@ describe("zAuction Contract Tests", () => {
       .connect(creator)
       .setNetworkToken(dummyDomainId, fakeNetworkToken.address);
 
-    const token = await zAuction.getTokenForDomain(dummyDomainId);
+    const token = await zAuction.getPaymentTokenForDomain(dummyDomainId);
     expect(token).to.eq(fakeNetworkToken.address);
   });
   it("Sets a default token", async () => {
-    await zAuction.connect(creator).setDefaultToken(fakeDefaultToken.address);
+    await zAuction
+      .connect(creator)
+      .setDefaultPaymentToken(fakeDefaultToken.address);
 
-    const token = await zAuction.defaultToken();
+    const token = await zAuction.defaultPaymentToken();
     expect(token).to.eq(fakeDefaultToken.address);
   });
   it("Removes a network token and falls back on the default token", async () => {
@@ -81,7 +84,7 @@ describe("zAuction Contract Tests", () => {
       .connect(creator)
       .setNetworkToken(dummyDomainId, ethers.constants.AddressZero);
 
-    const token = await zAuction.getTokenForDomain(dummyDomainId);
+    const token = await zAuction.getPaymentTokenForDomain(dummyDomainId);
     expect(token).to.eq(fakeDefaultToken.address);
   });
   it("Sets a buy now price", async () => {
@@ -91,7 +94,7 @@ describe("zAuction Contract Tests", () => {
 
     const listing = await zAuction.priceInfo(dummyDomainId);
     expect(listing.price).to.eq(ethers.utils.parseEther("10"));
-    expect(listing.token).to.eq(fakeDefaultToken.address);
+    expect(listing.paymentToken).to.eq(fakeDefaultToken.address);
   });
   it("Fails a buyNow if the network token is changed before purchase", async () => {
     await zAuction
@@ -100,7 +103,7 @@ describe("zAuction Contract Tests", () => {
 
     const tx = zAuction
       .connect(bidder)
-      .buyNow(ethers.utils.parseEther("10"), dummyDomainId);
+      .buyNowV2(ethers.utils.parseEther("10"), dummyDomainId);
 
     await expect(tx).to.be.revertedWith(
       "zAuction: Listing not set in correct domain token"
@@ -114,10 +117,9 @@ describe("zAuction Contract Tests", () => {
 
     const tx = await zAuction
       .connect(bidder)
-      .buyNow(ethers.utils.parseEther("10"), dummyDomainId);
+      .buyNowV2(ethers.utils.parseEther("10"), dummyDomainId);
 
-    const receipt = await tx.wait();
-    expect(receipt.from).to.eq(bidder.address);
+    expect(tx).to.emit(zAuction, "DomainSoldV2");
   });
   it("Fails acceptBidV2 if the wrong token is used", async () => {
     const params = {
@@ -179,8 +181,6 @@ describe("zAuction Contract Tests", () => {
     fakeZNSHub.ownerOf.whenCalledWith(params.tokenId).returns(owner.address);
     fakeRegistrar.minterOf.whenCalledWith("0x1").returns(owner.address);
 
-    await zAuction.connect(creator).setWildToken(fakeWildToken.address);
-
     // Legacy bids are always with WILD, but signed message doesn't include that
     // so use AddressZero
     const bidToSign = await zAuction.createBid(
@@ -209,9 +209,8 @@ describe("zAuction Contract Tests", () => {
         params.startBlock,
         params.expireBlock
       );
-    const receipt = await tx.wait();
-    expect(receipt.events?.length).to.eq(1); // BidAccepted
-    expect(receipt.from).to.eq(owner.address);
+
+    expect(tx).to.emit(zAuction, "BidAccepted");
   });
   it("Fails when the token given matches the domain network token but not the token of the original bid", async () => {
     const params = {
@@ -293,9 +292,8 @@ describe("zAuction Contract Tests", () => {
         params.expireBlock,
         fakeDefaultToken.address
       );
-    const receipt = await tx.wait();
-    expect(receipt.events?.length).to.eq(1); // BidAccepted
-    expect(receipt.from).to.eq(owner.address);
+
+    expect(tx).to.emit(zAuction, "BidAcceptedV2");
   });
   it("Not 18 decimal token test", async () => {
     // Confirm tokens with non-18 decimal precision don't break math
