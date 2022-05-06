@@ -2,6 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/StorageSlot.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
@@ -14,7 +15,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   using SafeERC20 for IERC20;
 
   // Default ERC20 Token
-  IERC20 public defaultToken;
+  IERC20 public defaultPaymentToken;
 
   // To avoid overriding this variable in memory on upgrades we have to keep it
   IRegistrar public registrar;
@@ -22,7 +23,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   struct Listing {
     uint256 price;
     address holder;
-    IERC20 token;
+    IERC20 paymentToken;
   }
 
   mapping(uint256 => Listing) public priceInfo;
@@ -31,6 +32,16 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   mapping(uint256 => uint256) public topLevelDomainFee;
 
   event BidAccepted(
+    uint256 bidNonce,
+    address indexed bidder,
+    address indexed seller,
+    uint256 amount,
+    address nftAddress,
+    uint256 tokenId,
+    uint256 expireBlock
+  );
+
+  event BidAcceptedV2(
     uint256 bidNonce,
     address indexed bidder,
     address indexed seller,
@@ -47,12 +58,22 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     address indexed seller,
     uint256 amount,
     address nftAddress,
+    uint256 indexed tokenId
+  );
+
+  event DomainSoldV2(
+    address indexed buyer,
+    address indexed seller,
+    uint256 amount,
+    address nftAddress,
     uint256 indexed tokenId,
     address paymentToken,
     uint256 topLevelDomainId
   );
 
-  event BuyNowPriceSet(
+  event BuyNowPriceSet(uint256 indexed tokenId, uint256 amount);
+
+  event BuyNowPriceSetV2(
     uint256 indexed tokenId,
     uint256 amount,
     address paymentToken
@@ -64,18 +85,40 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   IZNSHub public hub;
 
   // Map top level domain ID to the ERC20 token used for that network.
-  mapping(uint256 => IERC20) public networkToken;
+  mapping(uint256 => IERC20) public networkPaymentToken;
 
   // Hardcoded address of the wild token for legacy bids only
   IERC20 private wildToken;
+
+  // Storage slot with the proxy admin of the contract
+  bytes32 internal constant _ADMIN_SLOT =
+    0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
 
   function initialize(IERC20 tokenAddress, IRegistrar registrarAddress)
     public
     initializer
   {
     __Ownable_init();
-    defaultToken = tokenAddress;
+    defaultPaymentToken = tokenAddress;
     registrar = registrarAddress;
+  }
+
+  function getProxyAdmin() public view returns (address) {
+    return StorageSlot.getAddressSlot(_ADMIN_SLOT).value;
+  }
+
+  /// Upgrade this contract from v2 to v2.1. Only callable by the proxy admin.
+  /// @param _defaultToken The default ERC20 payment token
+  /// @param _wildToken The WILD token address
+  function upgradeFromV2(address _defaultToken, address _wildToken) public {
+    address proxyAdmin = getProxyAdmin();
+    require(
+      msg.sender == proxyAdmin,
+      "zAuction: Only the Proxy Admin can call to upgrade this contract."
+    );
+
+    defaultPaymentToken = IERC20(_defaultToken);
+    wildToken = IERC20(_wildToken);
   }
 
   /// recovers bidder's signature based on seller's proposed data and, if bid data hash matches the message hash, transfers nft and payment
@@ -105,7 +148,9 @@ contract ZAuction is Initializable, OwnableUpgradeable {
 
     IRegistrar domainRegistrar = hub.getRegistrarForDomain(domainTokenId);
 
-    // Don't include a token address when recreating bid data for legacy bids
+    // Don't include a valid token address when recreating bid data for legacy bids
+    // By passing `address(0)` we are telling `createBid` it is a legacy bid and
+    // a payment token address is not included in the data hash used for recovering the account
     bytes32 data = createBid(
       bidNonce,
       bid,
@@ -145,9 +190,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
       bid,
       address(domainRegistrar),
       domainTokenId,
-      expireBlock,
-      address(wildToken),
-      topLevelDomainId
+      expireBlock
     );
   }
 
@@ -156,7 +199,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   /// @param bidNonce unique per address auction identifier chosen by seller
   /// @param bidder address of who the seller says the bidder is, for confirmation of the recovered bidder
   /// @param bid token amount bid
-  /// @param tokenId token id we are transferring
+  /// @param domainTokenId token id we are transferring
   /// @param minbid minimum bid allowed
   /// @param startBlock block number at which acceptBid starts working
   /// @param expireBlock block number at which acceptBid stops working
@@ -166,7 +209,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     uint256 bidNonce,
     address bidder,
     uint256 bid,
-    uint256 tokenId,
+    uint256 domainTokenId,
     uint256 minbid,
     uint256 startBlock,
     uint256 expireBlock,
@@ -176,21 +219,21 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     require(expireBlock > block.number, "zAuction: auction expired");
     require(minbid <= bid, "zAuction: cannot accept bid below min");
     require(bidder != msg.sender, "zAuction: cannot sell to self");
-    require(msg.sender == hub.ownerOf(tokenId), "Only Owner");
+    require(msg.sender == hub.ownerOf(domainTokenId), "Only Owner");
 
     // Disallow accepting bid if made in the wrong ERC20 token
-    IERC20 domainToken = getTokenForDomain(tokenId);
+    IERC20 paymentToken = getPaymentTokenForDomain(domainTokenId);
     require(
-      domainToken == bidToken,
+      paymentToken == bidToken,
       "zAuction: Only bids made with the network's token can be accepted"
     );
 
-    IRegistrar domainRegistrar = hub.getRegistrarForDomain(tokenId);
+    IRegistrar domainRegistrar = hub.getRegistrarForDomain(domainTokenId);
 
     bytes32 data = createBid(
       bidNonce,
       bid,
-      tokenId,
+      domainTokenId,
       minbid,
       startBlock,
       expireBlock,
@@ -205,27 +248,27 @@ contract ZAuction is Initializable, OwnableUpgradeable {
 
     consumed[bidder][bidNonce] = true;
 
-    uint256 topLevelDomainId = getTopLevelIdWithUpdate(tokenId);
+    uint256 topLevelDomainId = getTopLevelIdWithUpdate(domainTokenId);
     // Transfer payment, royalty to minter, and fee to topLevel domain owner
     paymentTransfers(
       bidder,
       bid,
       msg.sender,
       topLevelDomainId,
-      tokenId,
+      domainTokenId,
       bidToken
     );
 
     // Owner -> Bidder, send NFT
-    domainRegistrar.safeTransferFrom(msg.sender, bidder, tokenId);
+    domainRegistrar.safeTransferFrom(msg.sender, bidder, domainTokenId);
 
-    emit BidAccepted(
+    emit BidAcceptedV2(
       bidNonce,
       bidder,
       msg.sender,
       bid,
       address(domainRegistrar),
-      tokenId,
+      domainTokenId,
       expireBlock,
       address(bidToken),
       topLevelDomainId
@@ -243,10 +286,10 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   {
     // Setting to 0 will cause the system to fall back onto the default token
     require(
-      networkToken[domainNetworkId] != domainNetworkToken,
+      networkPaymentToken[domainNetworkId] != domainNetworkToken,
       "zAuction: No state change"
     );
-    networkToken[domainNetworkId] = domainNetworkToken;
+    networkPaymentToken[domainNetworkId] = domainNetworkToken;
   }
 
   /// Set the value of the hardcoded IERC20 wildToken to be used in legacy bids
@@ -258,59 +301,55 @@ contract ZAuction is Initializable, OwnableUpgradeable {
 
   /// Admin modify default token
   /// @param newDefaultToken The new default ERC20 token to use
-  function setDefaultToken(IERC20 newDefaultToken) external onlyOwner {
+  function setDefaultPaymentToken(IERC20 newDefaultToken) external onlyOwner {
     require(
       newDefaultToken != IERC20(address(0)),
-      "zAuction: Must provide a valid default token"
+      "zAuction: Cannot give a zero address for the default payment token"
     );
-    defaultToken = newDefaultToken;
+    require(
+      newDefaultToken != defaultPaymentToken,
+      "zAuction: No state change"
+    );
+    defaultPaymentToken = newDefaultToken;
   }
 
   /// Allows for setting the buyNow price of a domain in either the network token or default token
   /// @param amount The price to be set
-  /// @param tokenId The domain token to be put up for sale
-  function setBuyPrice(uint256 amount, uint256 tokenId) external {
-    IRegistrar domainRegistrar = hub.getRegistrarForDomain(tokenId);
-    address owner = domainRegistrar.ownerOf(tokenId);
+  /// @param domainTokenId The domain token to be put up for sale
+  function setBuyPrice(uint256 amount, uint256 domainTokenId) external {
+    IRegistrar domainRegistrar = hub.getRegistrarForDomain(domainTokenId);
+    address owner = domainRegistrar.ownerOf(domainTokenId);
 
-    require(msg.sender == owner, "zAuction: only owner can set price"); // fail
+    require(msg.sender == owner, "zAuction: only owner can set price");
 
     require(
-      priceInfo[tokenId].price != amount,
+      priceInfo[domainTokenId].price != amount,
       "zAuction: listing already exists"
     );
 
     // Always set in whatever the current token for that domain is
-    IERC20 paymentToken = getTokenForDomain(tokenId);
+    IERC20 paymentToken = getPaymentTokenForDomain(domainTokenId);
 
-    priceInfo[tokenId] = Listing(amount, owner, paymentToken);
-    emit BuyNowPriceSet(tokenId, amount, address(paymentToken));
+    priceInfo[domainTokenId] = Listing(amount, owner, paymentToken);
+    emit BuyNowPriceSetV2(domainTokenId, amount, address(paymentToken));
   }
 
   /// recovers buyer's signature based on seller's proposed data and, if bid data hash matches the message hash, transfers nft and payment
   /// @param amount token amount of sale
-  /// @param tokenId token id we are transferring
-  function buyNow(uint256 amount, uint256 tokenId) external {
-    require(priceInfo[tokenId].price != 0, "zAuction: item not for sale");
-    require(amount == priceInfo[tokenId].price, "zAuction: wrong sale price");
-
-    // It is possible the payment token is modified between the time
-    // a buy price is set and the time it is accepted. If this is so,
-    // we can't perform a buyNow sale as it is not set in the updated
-    //token.
-    IERC20 paymentToken = priceInfo[tokenId].token;
-    IERC20 domainToken = getTokenForDomain(tokenId);
+  /// @param domainTokenId token id we are transferring
+  function buyNow(uint256 amount, uint256 domainTokenId) external {
+    require(priceInfo[domainTokenId].price != 0, "zAuction: item not for sale");
     require(
-      paymentToken == domainToken,
-      "zAuction: Listing not set in correct domain token"
+      amount == priceInfo[domainTokenId].price,
+      "zAuction: wrong sale price"
     );
 
-    IRegistrar domainRegistrar = hub.getRegistrarForDomain(tokenId);
-    address seller = domainRegistrar.ownerOf(tokenId);
+    IRegistrar domainRegistrar = hub.getRegistrarForDomain(domainTokenId);
+    address seller = domainRegistrar.ownerOf(domainTokenId);
 
     require(msg.sender != seller, "zAuction: cannot sell to self");
     require(
-      priceInfo[tokenId].holder == seller,
+      priceInfo[domainTokenId].holder == seller,
       "zAuction: not listed for sale"
     );
 
@@ -319,26 +358,81 @@ contract ZAuction is Initializable, OwnableUpgradeable {
       msg.sender,
       amount,
       seller,
-      getTopLevelIdWithUpdate(tokenId),
-      tokenId,
-      paymentToken
+      getTopLevelIdWithUpdate(domainTokenId),
+      domainTokenId,
+      wildToken
     );
 
-    uint256 topLevelId = getTopLevelIdWithUpdate(tokenId);
-
     // To disallow being shown as a sale after being already purchased, we set price to 0
-    priceInfo[tokenId].price = 0;
+    priceInfo[domainTokenId].price = 0;
 
     // Owner -> message sender, send NFT
-    domainRegistrar.safeTransferFrom(seller, msg.sender, tokenId);
+    domainRegistrar.safeTransferFrom(seller, msg.sender, domainTokenId);
 
     emit DomainSold(
       msg.sender,
       seller,
       amount,
       address(domainRegistrar),
-      tokenId,
-      address(paymentToken),
+      domainTokenId
+    );
+  }
+
+  /// Allows immediate purchase like in `buyNow`
+  /// @param amount token amount of sale
+  /// @param domainTokenId token id we are transferring
+  function buyNowV2(uint256 amount, uint256 domainTokenId) external {
+    require(priceInfo[domainTokenId].price != 0, "zAuction: item not for sale");
+    require(
+      amount == priceInfo[domainTokenId].price,
+      "zAuction: wrong sale price"
+    );
+
+    // It is possible the payment token is modified between the time
+    // a buy price is set and the time it is accepted. If this is so,
+    // we can't perform a buyNow sale as it is not set in the updated
+    // token.
+    IERC20 listingPaymentToken = priceInfo[domainTokenId].paymentToken;
+    IERC20 domainPaymentToken = getPaymentTokenForDomain(domainTokenId);
+    require(
+      domainPaymentToken == listingPaymentToken,
+      "zAuction: Listing not set in correct domain token"
+    );
+
+    IRegistrar domainRegistrar = hub.getRegistrarForDomain(domainTokenId);
+    address seller = domainRegistrar.ownerOf(domainTokenId);
+
+    require(msg.sender != seller, "zAuction: cannot sell to self");
+    require(
+      priceInfo[domainTokenId].holder == seller,
+      "zAuction: not listed for sale"
+    );
+
+    // Transfer payment, royalty to minter, and fee to topLevel domain
+    paymentTransfers(
+      msg.sender,
+      amount,
+      seller,
+      getTopLevelIdWithUpdate(domainTokenId),
+      domainTokenId,
+      listingPaymentToken
+    );
+
+    uint256 topLevelId = getTopLevelIdWithUpdate(domainTokenId);
+
+    // To disallow being shown as a sale after being already purchased, we set price to 0
+    priceInfo[domainTokenId].price = 0;
+
+    // Owner -> message sender, send NFT
+    domainRegistrar.safeTransferFrom(seller, msg.sender, domainTokenId);
+
+    emit DomainSoldV2(
+      msg.sender,
+      seller,
+      amount,
+      address(domainRegistrar),
+      domainTokenId,
+      address(listingPaymentToken),
       topLevelId
     );
   }
@@ -394,18 +488,22 @@ contract ZAuction is Initializable, OwnableUpgradeable {
 
   /// Get the defined ERC20 token used for payment of a domain in either bidding
   /// or immediate buying.
-  /// @param domainId The id of the domain to get an ERC20 token for
-  function getTokenForDomain(uint256 domainId) public view returns (IERC20) {
-    require(domainId != 0, "zAuction: Must provide a valid domainId");
+  /// @param domainTokenId The id of the domain to get an ERC20 token for
+  function getPaymentTokenForDomain(uint256 domainTokenId)
+    public
+    view
+    returns (IERC20)
+  {
+    require(domainTokenId != 0, "zAuction: Must provide a valid domainId");
 
-    uint256 topLevelDomainId = getTopLevelId(domainId);
-    IERC20 domainToken = networkToken[topLevelDomainId];
+    uint256 topLevelDomainId = getTopLevelId(domainTokenId);
+    IERC20 paymentToken = networkPaymentToken[topLevelDomainId];
 
     // If value is unset, or set to 0 intentionally, we return the default
-    if (domainToken == IERC20(address(0))) {
-      return defaultToken;
+    if (paymentToken == IERC20(address(0))) {
+      return defaultPaymentToken;
     } else {
-      return domainToken;
+      return paymentToken;
     }
   }
 
@@ -447,7 +545,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   /// Create a bid object hashed with the current contract address
   /// @param bidNonce unique per address bid identifier chosen by seller
   /// @param bid token amount bid
-  /// @param tokenId token id we are transferring
+  /// @param domainTokenId token id we are transferring
   /// @param minbid minimum bid allowed
   /// @param startBlock block number at which acceptBid starts working
   /// @param expireBlock block number at which acceptBid stops working
@@ -455,13 +553,13 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   function createBid(
     uint256 bidNonce,
     uint256 bid,
-    uint256 tokenId,
+    uint256 domainTokenId,
     uint256 minbid,
     uint256 startBlock,
     uint256 expireBlock,
     address bidToken
   ) public view returns (bytes32 data) {
-    IRegistrar domainRegistrar = hub.getRegistrarForDomain(tokenId);
+    IRegistrar domainRegistrar = hub.getRegistrarForDomain(domainTokenId);
 
     // If a legacy bid we don't include the token address in hash
     if (bidToken == address(0)) {
@@ -473,7 +571,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
             block.chainid,
             bid,
             address(domainRegistrar),
-            tokenId,
+            domainTokenId,
             minbid,
             startBlock,
             expireBlock
@@ -488,7 +586,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
             block.chainid,
             bid,
             address(domainRegistrar),
-            tokenId,
+            domainTokenId,
             minbid,
             startBlock,
             expireBlock,
@@ -501,15 +599,15 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   /// Get the top level domain ID of a given domain. Will return self if already the top level.
   /// Note will not update the cache once found, this is to keep it a view function. To force
   /// updating the cache, instead use getTopLevelIdWithUpdate(uint256) below
-  /// @param tokenId The domain ID to get the top level domain for.
-  function getTopLevelId(uint256 tokenId) public view returns (uint256) {
-    uint256 topLevelDomainId = topLevelDomainIdCache[tokenId];
+  /// @param domainTokenId The domain ID to get the top level domain for.
+  function getTopLevelId(uint256 domainTokenId) public view returns (uint256) {
+    uint256 topLevelDomainId = topLevelDomainIdCache[domainTokenId];
     if (topLevelDomainId != 0) {
       return topLevelDomainId;
     }
 
-    uint256 parentId = hub.parentOf(tokenId);
-    uint256 holder = tokenId;
+    uint256 parentId = hub.parentOf(domainTokenId);
+    uint256 holder = domainTokenId;
     while (parentId != 0) {
       holder = parentId;
       parentId = hub.parentOf(parentId);
