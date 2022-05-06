@@ -23,11 +23,6 @@
     chalk "^2.0.0"
     js-tokens "^4.0.0"
 
-"@cto.af/textdecoder@^0.0.0":
-  version "0.0.0"
-  resolved "https://registry.npmjs.org/@cto.af/textdecoder/-/textdecoder-0.0.0.tgz"
-  integrity sha512-sJpx3F5xcVV/9jNYJQtvimo4Vfld/nD3ph+ZWtQzZ03Zo8rJC7QKQTRcIGS13Rcz80DwFNthCWMrd58vpY4ZAQ==
-
 "@defi-wonderland/smock@2.0.6":
   version "2.0.6"
   resolved "https://registry.npmjs.org/@defi-wonderland/smock/-/smock-2.0.6.tgz"
@@ -787,22 +782,24 @@
   resolved "https://registry.npmjs.org/@openzeppelin/contracts/-/contracts-4.1.0.tgz"
   integrity sha512-TihZitscnaHNcZgXGj9zDLDyCqjziytB4tMCwXq0XimfWkAjBYyk5/pOsDbbwcavhlc79HhpTEpQcrMnPVa1mw==
 
-"@openzeppelin/hardhat-upgrades@1.8.2":
-  version "1.8.2"
-  resolved "https://registry.npmjs.org/@openzeppelin/hardhat-upgrades/-/hardhat-upgrades-1.8.2.tgz"
-  integrity sha512-G+z1WdsjBYQX4j0yPU+pM3rcmVgQNI6g3N05prxpXgAj8QhSDDisfWH2hC1XW8FLm7+dijz7FpUaEEdidpOA9Q==
+"@openzeppelin/hardhat-upgrades@1.17.0":
+  version "1.17.0"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/hardhat-upgrades/-/hardhat-upgrades-1.17.0.tgz#24ea0f366c3b2df985263cf8b1b796afd04d7e13"
+  integrity sha512-GNxR3/3fCKQsFpBi/r+5ib6U81UM9KCypmcOQxuCkVp9JKJ80/3hQdg1R+AQku/dlnhutPsfkCokH2LZFc5mNA==
   dependencies:
-    "@openzeppelin/upgrades-core" "^1.7.3"
+    "@openzeppelin/upgrades-core" "^1.14.1"
+    chalk "^4.1.0"
+    proper-lockfile "^4.1.1"
 
-"@openzeppelin/upgrades-core@1.7.6", "@openzeppelin/upgrades-core@^1.7.3":
-  version "1.7.6"
-  resolved "https://registry.npmjs.org/@openzeppelin/upgrades-core/-/upgrades-core-1.7.6.tgz"
-  integrity sha512-xXoUJGWI2MHLtMwS2GN3PiymZ9WIj+uRAMrm8HIz0genGSIO6PwPMlmaUyq3O8/JzTMgpVV92aMcPjOkvI5SmQ==
+"@openzeppelin/upgrades-core@1.14.2", "@openzeppelin/upgrades-core@^1.14.1":
+  version "1.14.2"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/upgrades-core/-/upgrades-core-1.14.2.tgz#1acf6560dbe42b5e68fdffe6e6979b90fa33bb56"
+  integrity sha512-JkrMcsB0v6vwX+fObY+y51L3tD3BcLjNpPnKkgtsEOC1Umwt6WzvI8Gq2brmNOzFLNQqeX2xySiJTGvypqUQow==
   dependencies:
     bn.js "^5.1.2"
-    cbor "^7.0.0"
+    cbor "^8.0.0"
     chalk "^4.1.0"
-    compare-versions "^3.6.0"
+    compare-versions "^4.0.0"
     debug "^4.1.1"
     ethereumjs-util "^7.0.3"
     proper-lockfile "^4.1.1"
@@ -2536,13 +2533,12 @@ cbor@^5.0.2:
     bignumber.js "^9.0.1"
     nofilter "^1.0.4"
 
-cbor@^7.0.0:
-  version "7.0.6"
-  resolved "https://registry.npmjs.org/cbor/-/cbor-7.0.6.tgz"
-  integrity sha512-rgt2RFogHGDLFU5r0kSfyeBc+de55DwYHP73KxKsQxsR5b0CYuQPH6AnJaXByiohpLdjQqj/K0SFcOV+dXdhSA==
+cbor@^8.0.0:
+  version "8.1.0"
+  resolved "https://registry.yarnpkg.com/cbor/-/cbor-8.1.0.tgz#cfc56437e770b73417a2ecbfc9caf6b771af60d5"
+  integrity sha512-DwGjNW9omn6EwP70aXsn7FQJx5kO12tX0bZkaTjzdVFM6/7nhA4t0EENocKGx6D2Bch9PE2KzCUf5SceBdeijg==
   dependencies:
-    "@cto.af/textdecoder" "^0.0.0"
-    nofilter "^2.0.3"
+    nofilter "^3.1.0"
 
 chai@4.3.4:
   version "4.3.4"
@@ -2805,10 +2801,10 @@ commander@3.0.2:
   resolved "https://registry.npmjs.org/commander/-/commander-3.0.2.tgz"
   integrity sha512-Gar0ASD4BDyKC4hl4DwHqDrmvjoxWKZigVnAbn5H1owvm4CxCPdb0HQDehwNYMJpla5+M2tPmPARzhtYuwpHow==
 
-compare-versions@^3.6.0:
-  version "3.6.0"
-  resolved "https://registry.npmjs.org/compare-versions/-/compare-versions-3.6.0.tgz"
-  integrity sha512-W6Af2Iw1z4CB7q4uU4hv646dW9GQuBM+YpC0UvUCWSD8w90SJjp+ujJuXaEMtAXBtSqGfMPuFOVn4/+FlaqfBA==
+compare-versions@^4.0.0:
+  version "4.1.3"
+  resolved "https://registry.yarnpkg.com/compare-versions/-/compare-versions-4.1.3.tgz#8f7b8966aef7dc4282b45dfa6be98434fc18a1a4"
+  integrity sha512-WQfnbDcrYnGr55UwbxKiQKASnTtNnaAWVi8jZyy8NTpVAXWACSne8lMD1iaIo9AiU6mnuLvSVshCzewVuWxHUg==
 
 component-emitter@^1.2.1:
   version "1.3.0"
@@ -6811,12 +6807,10 @@ nofilter@^1.0.4:
   resolved "https://registry.npmjs.org/nofilter/-/nofilter-1.0.4.tgz"
   integrity sha512-N8lidFp+fCz+TD51+haYdbDGrcBWwuHX40F5+z0qkUjMJ5Tp+rdSuAkMJ9N9eoolDlEVTf6u5icM+cNKkKW2mA==
 
-nofilter@^2.0.3:
-  version "2.0.3"
-  resolved "https://registry.npmjs.org/nofilter/-/nofilter-2.0.3.tgz"
-  integrity sha512-FbuXC+lK+GU2+63D1kC1ETiZo+Z7SIi7B+mxKTCH1byrh6WFvfBCN/wpherFz0a0bjGd7EKTst/cz0yLeNngug==
-  dependencies:
-    "@cto.af/textdecoder" "^0.0.0"
+nofilter@^3.1.0:
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/nofilter/-/nofilter-3.1.0.tgz#c757ba68801d41ff930ba2ec55bab52ca184aa66"
+  integrity sha512-l2NNj07e9afPnhAhvgVrCD/oy2Ai1yfLpuo3EpiO1jFTsB4sFz6oIfAfSZyQzVpkZQ9xS8ZS5g1jCBgq4Hwo0g==
 
 nopt@3.x:
   version "3.0.6"
