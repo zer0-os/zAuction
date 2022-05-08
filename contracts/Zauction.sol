@@ -88,7 +88,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   mapping(uint256 => IERC20) public networkPaymentToken;
 
   // Hardcoded address of the wild token for legacy bids only
-  IERC20 private wildToken;
+  IERC20 public wildToken;
 
   // Storage slot with the proxy admin of the contract
   bytes32 internal constant _ADMIN_SLOT =
