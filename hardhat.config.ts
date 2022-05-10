@@ -7,6 +7,7 @@ import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
 import "solidity-coverage";
+import { removeConsoleLog } from "hardhat-preprocessor";
 
 task("accounts", "Prints the list of accounts", async (args, hre) => {
   const accounts = await hre.ethers.getSigners();
@@ -22,6 +23,10 @@ const config: HardhatUserConfig = {
       {
         version: "0.8.4",
         settings: {
+          optimizer: {
+            enabled: true,
+            runs: 1000,
+          },
           outputSelection: {
             "*": {
               "*": ["storageLayout"],
@@ -39,12 +44,12 @@ const config: HardhatUserConfig = {
     hardhat: {
       accounts: [
         {
-          privateKey: `${process.env.MAINNET_PRIVATE_KEY}`,
+          privateKey: `${process.env.TESTNET_PRIVATE_KEY}`,
           balance: "9999999999999999999999999",
         },
       ],
       forking: {
-        url: "https://mainnet.infura.io/v3/0e6434f252a949719227b5d68caa2657",
+        url: "https://mainnet.infura.io/v3/b038070517554c7f9dab88e37d0b936a",
         blockNumber: 14490792,
       },
     },
@@ -80,8 +85,18 @@ const config: HardhatUserConfig = {
       },
     },
   },
+  typechain: {
+    outDir: "typechain",
+    target: "ethers-v5",
+  },
   etherscan: {
     apiKey: "FZ1ANB251FC8ISFDXFGFCUDCANSJNWPF9Q",
+  },
+  preprocess: {
+    eachLine: removeConsoleLog(
+      (hre) =>
+        hre.network.name !== "hardhat" && hre.network.name !== "localhost"
+    ),
   },
 };
 export default config;
