@@ -121,6 +121,12 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     wildToken = IERC20(_wildToken);
   }
 
+  // For backwards compatability we want to make sure there is still a "token" that can be called.
+  // This will be deprecated in the future, don't call this function.
+  function token() external view returns (IERC20) {
+    return wildToken;
+  }
+
   /// recovers bidder's signature based on seller's proposed data and, if bid data hash matches the message hash, transfers nft and payment
   /// @param signature type encoded message signed by the bidder
   /// @param bidNonce unique per address auction identifier chosen by seller
