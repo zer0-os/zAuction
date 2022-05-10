@@ -154,11 +154,11 @@ contract ZAuction is Initializable, OwnableUpgradeable {
     bytes32 data = createBid(
       bidNonce,
       bid,
+      address(domainRegistrar),
       domainTokenId,
       minbid,
       startBlock,
-      expireBlock,
-      address(0)
+      expireBlock
     );
 
     require(
@@ -230,7 +230,7 @@ contract ZAuction is Initializable, OwnableUpgradeable {
 
     IRegistrar domainRegistrar = hub.getRegistrarForDomain(domainTokenId);
 
-    bytes32 data = createBid(
+    bytes32 data = createBidV2(
       bidNonce,
       bid,
       domainTokenId,
@@ -545,55 +545,62 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   /// Create a bid object hashed with the current contract address
   /// @param bidNonce unique per address bid identifier chosen by seller
   /// @param bid token amount bid
-  /// @param domainTokenId token id we are transferring
+  /// @param nftAddress the contract address of the domain
+  /// @param tokenId token id we are transferring
   /// @param minbid minimum bid allowed
   /// @param startBlock block number at which acceptBid starts working
   /// @param expireBlock block number at which acceptBid stops working
-  /// @param bidToken The token used in that bid, 0 for legacy bids
   function createBid(
     uint256 bidNonce,
     uint256 bid,
-    uint256 domainTokenId,
+    address nftAddress,
+    uint256 tokenId,
+    uint256 minbid,
+    uint256 startBlock,
+    uint256 expireBlock
+  ) public view returns (bytes32 data) {
+    IRegistrar domainRegistrar = hub.getRegistrarForDomain(tokenId);
+    return
+      keccak256(
+        abi.encode(
+          bidNonce,
+          address(this),
+          block.chainid,
+          bid,
+          address(domainRegistrar),
+          tokenId,
+          minbid,
+          startBlock,
+          expireBlock
+        )
+      );
+  }
+
+  function createBidV2(
+    uint256 bidNonce,
+    uint256 bid,
+    uint256 tokenId,
     uint256 minbid,
     uint256 startBlock,
     uint256 expireBlock,
     address bidToken
   ) public view returns (bytes32 data) {
-    IRegistrar domainRegistrar = hub.getRegistrarForDomain(domainTokenId);
-
-    // If a legacy bid we don't include the token address in hash
-    if (bidToken == address(0)) {
-      return
-        keccak256(
-          abi.encode(
-            bidNonce,
-            address(this),
-            block.chainid,
-            bid,
-            address(domainRegistrar),
-            domainTokenId,
-            minbid,
-            startBlock,
-            expireBlock
-          )
-        );
-    } else {
-      return
-        keccak256(
-          abi.encode(
-            bidNonce,
-            address(this),
-            block.chainid,
-            bid,
-            address(domainRegistrar),
-            domainTokenId,
-            minbid,
-            startBlock,
-            expireBlock,
-            bidToken
-          )
-        );
-    }
+    IRegistrar domainRegistrar = hub.getRegistrarForDomain(tokenId);
+    return
+      keccak256(
+        abi.encode(
+          bidNonce,
+          address(this),
+          block.chainid,
+          bid,
+          address(domainRegistrar),
+          tokenId,
+          minbid,
+          startBlock,
+          expireBlock,
+          bidToken
+        )
+      );
   }
 
   /// Get the top level domain ID of a given domain. Will return self if already the top level.
