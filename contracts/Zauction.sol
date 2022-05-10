@@ -148,9 +148,6 @@ contract ZAuction is Initializable, OwnableUpgradeable {
 
     IRegistrar domainRegistrar = hub.getRegistrarForDomain(domainTokenId);
 
-    // Don't include a valid token address when recreating bid data for legacy bids
-    // By passing `address(0)` we are telling `createBid` it is a legacy bid and
-    // a payment token address is not included in the data hash used for recovering the account
     bytes32 data = createBid(
       bidNonce,
       bid,
