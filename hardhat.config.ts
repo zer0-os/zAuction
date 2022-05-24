@@ -56,7 +56,7 @@ const config: HardhatUserConfig = {
     mainnet: {
       accounts: [`${process.env.MAINNET_PRIVATE_KEY}`],
       url: `https://mainnet.infura.io/v3/0e6434f252a949719227b5d68caa2657`,
-      gasPrice: 80000000000,
+      gasPrice: "auto",
     },
     kovan: {
       accounts: { mnemonic: process.env.TESTNET_MNEMONIC || "" },
