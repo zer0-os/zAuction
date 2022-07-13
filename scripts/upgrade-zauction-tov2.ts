@@ -1,5 +1,5 @@
 import { ethers, upgrades, network, run } from "hardhat";
-import { ZAuction__factory } from "./../typechain/factories/contracts/Zauction.sol";
+import { ZAuction__factory } from "../typechain/factories/contracts/Zauction.sol";
 import { getLogger } from "../utilities";
 
 const logger = getLogger("scripts::deploy-zauction");

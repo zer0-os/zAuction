@@ -25,6 +25,7 @@
     "ethereum-waffle": "3.3.0",
     "ethers": "5.4.1",
     "hardhat": "2.6.4",
+    "hardhat-preprocessor": "0.1.4",
     "logdown": "3.3.1",
     "prettier": "2.3.1",
     "prettier-plugin-solidity": "1.0.0-beta.13",
@@ -34,8 +35,7 @@
     "ts-generator": "0.1.1",
     "ts-node": "10.0.0",
     "typechain": "8.0.0",
-    "typescript": "4.3.2",
-    "hardhat-preprocessor": "0.1.4"
+    "typescript": "4.3.2"
   },
   "scripts": {
     "postinstall": "hardhat typechain",
@@ -55,5 +55,8 @@
   },
   "name": "zauction",
   "version": "0.1.0",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@openzeppelin/hardhat-defender": "^1.7.0"
+  }
 }
