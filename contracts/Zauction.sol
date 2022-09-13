@@ -94,31 +94,19 @@ contract ZAuction is Initializable, OwnableUpgradeable {
   bytes32 internal constant _ADMIN_SLOT =
     0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
 
-  function initialize(IERC20 tokenAddress, IRegistrar registrarAddress)
-    public
-    initializer
-  {
+  function initialize(
+    IERC20 defaultPaymentToken_,
+    IERC20 wildToken_,
+    IZNSHub znsHub_
+  ) public initializer {
     __Ownable_init();
-    defaultPaymentToken = tokenAddress;
-    registrar = registrarAddress;
+    defaultPaymentToken = defaultPaymentToken_;
+    wildToken = wildToken_;
+    hub = znsHub_;
   }
 
   function getProxyAdmin() public view returns (address) {
     return StorageSlot.getAddressSlot(_ADMIN_SLOT).value;
-  }
-
-  /// Upgrade this contract from v2 to v2.1. Only callable by the proxy admin.
-  /// @param _defaultToken The default ERC20 payment token
-  /// @param _wildToken The WILD token address
-  function upgradeFromV2(address _defaultToken, address _wildToken) public {
-    address proxyAdmin = getProxyAdmin();
-    require(
-      msg.sender == proxyAdmin,
-      "zAuction: Only the Proxy Admin can call to upgrade this contract."
-    );
-
-    defaultPaymentToken = IERC20(_defaultToken);
-    wildToken = IERC20(_wildToken);
   }
 
   // For backwards compatability we want to make sure there is still a "token" that can be called.

@@ -3,6 +3,7 @@ require("dotenv").config();
 import { task, HardhatUserConfig } from "hardhat/config";
 import "@typechain/hardhat";
 import "@openzeppelin/hardhat-upgrades";
+import "@openzeppelin/hardhat-defender";
 import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
@@ -56,7 +57,7 @@ const config: HardhatUserConfig = {
     mainnet: {
       accounts: [`${process.env.MAINNET_PRIVATE_KEY}`],
       url: `https://mainnet.infura.io/v3/0e6434f252a949719227b5d68caa2657`,
-      gasPrice: "auto",
+      gasPrice: 30000000000,
     },
     kovan: {
       accounts: { mnemonic: process.env.TESTNET_MNEMONIC || "" },
@@ -97,6 +98,10 @@ const config: HardhatUserConfig = {
       (hre) =>
         hre.network.name !== "hardhat" && hre.network.name !== "localhost"
     ),
+  },
+  defender: {
+    apiKey: process.env.DEFENDER_TEAM_API_KEY || "",
+    apiSecret: process.env.DEFENDER_TEAM_API_SECRET || "",
   },
 };
 export default config;
