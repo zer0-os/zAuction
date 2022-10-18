@@ -1,4 +1,4 @@
-import { ZAuction__factory } from "./../typechain/factories/ZAuction__factory";
+import { ZAuction__factory } from "../typechain";
 import { upgrades, network, run, ethers } from "hardhat";
 
 import {
@@ -64,7 +64,11 @@ async function main() {
 
   const instance = await upgrades.deployProxy(
     zauctionfactory,
-    [tokenAddress, defaultRegistrarThatIsNowIgnored],
+    [
+      tokenAddress,
+      defaultRegistrarThatIsNowIgnored,
+      hubAddress
+    ],
     {
       initializer: "initialize",
     }
