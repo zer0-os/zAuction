@@ -6,13 +6,8 @@
   },
   "proxies": [
     {
-      "address": "0xdF0f9F007A38aD25E0c02959374f38719Af5fCf8",
-      "txHash": "0xf948e10bd7ded27795cd3e8338bb8502478bd5c99cf7279fe4047cc6507e909b",
-      "kind": "transparent"
-    },
-    {
-      "address": "0xD22a546805540a9392AFF3740672b0c593e2119f",
-      "txHash": "0x09adc708449ed334146eb4303780ad9c392f5bc37a4bc7a49b6566b8f6eda63c",
+      "address": "0x78764080e4Fb36CB24487d3Ca8e3aa92cD7C58fc",
+      "txHash": "0x44952467ebc29244aaea5d23783738ba8d3e280bb5341facd97160a1c6ae1111",
       "kind": "transparent"
     }
   ],
@@ -67,7 +62,7 @@
           {
             "contract": "ZAuction",
             "label": "priceInfo",
-            "type": "t_mapping(t_uint256,t_struct(Listing)2513_storage)",
+            "type": "t_mapping(t_uint256,t_struct(Listing)1272_storage)",
             "src": "contracts\\Zauction.sol:26"
           },
           {
@@ -102,13 +97,13 @@
           "t_contract(IRegistrar)1132": {
             "label": "contract IRegistrar"
           },
-          "t_mapping(t_uint256,t_struct(Listing)2513_storage)": {
+          "t_mapping(t_uint256,t_struct(Listing)1272_storage)": {
             "label": "mapping(uint256 => struct ZAuction.Listing)"
           },
           "t_uint256": {
             "label": "uint256"
           },
-          "t_struct(Listing)2513_storage": {
+          "t_struct(Listing)1272_storage": {
             "label": "struct ZAuction.Listing",
             "members": [
               {
