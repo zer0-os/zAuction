@@ -2,16 +2,17 @@
   "zAuction": [
     {
       "tag": "goerli-zauction-1-gorilla-time",
-      "address": "0xdF0f9F007A38aD25E0c02959374f38719Af5fCf8",
-      "version": "d3b28e9203798aa3f6868d7687ccd50f59e5ec3b519c84acf6cd2e836b80f375",
-      "date": "2022-04-21T18:36:22.426Z",
+      "address": "0x78764080e4Fb36CB24487d3Ca8e3aa92cD7C58fc",
+      "version": "37c3a148eb18c9be35291fb196ebcf85a5b489a6b38cdcd78e6950ce4439fa8a",
+      "date": "2022-10-18T21:20:51.873Z",
       "args": {
-        "tokenAddress": "0xdDd0516188a2240c864AAd7E95FF832038fa7804",
-        "defaultRegistrarThatIsNowIgnored": "0x0000000000000000000000000000000000000000"
+        "defaultPaymentToken": "0x3Fa5ae3F31D38bCc2cf1dA2394c938dA8a1C9f69",
+        "wildToken": "0x0e46c45f8aca3f89Ad06F4a20E2BED1A12e4658C",
+        "hubAddress": "0xce1fE2DA169C313Eb00a2bad25103D2B9617b5e1"
       },
       "isUpgradable": true,
       "admin": "0xB885055149A5bdDD48F8B5779FEea5217E28b3B9",
-      "implementation": "0x3Ae5d499cfb8FB645708CC6DA599C90e64b33A79"
+      "implementation": "0xc7cb8C3B705d574CA97507162a697EF6aF9A4941"
     }
   ]
 }

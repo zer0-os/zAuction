@@ -91,7 +91,10 @@ const config: HardhatUserConfig = {
     target: "ethers-v5",
   },
   etherscan: {
-    apiKey: "FZ1ANB251FC8ISFDXFGFCUDCANSJNWPF9Q",
+    apiKey: {
+      mainnet: "PR3QC4MMMC2I1S7AVSMY6GX1ZBTFPP91MW",
+      goerli: "PR3QC4MMMC2I1S7AVSMY6GX1ZBTFPP91MW"
+    }
   },
   preprocess: {
     eachLine: removeConsoleLog(

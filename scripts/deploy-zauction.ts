@@ -1,4 +1,4 @@
-import { ZAuction__factory } from "./../typechain/factories/ZAuction__factory";
+import { ZAuction__factory } from "../typechain";
 import { upgrades, network, run, ethers } from "hardhat";
 
 import {
@@ -20,16 +20,10 @@ import { Contract } from "ethers";
 import { ZAuction } from "../typechain";
 const logger = getLogger("scripts::deploy-zauction");
 
-// const tokenAddress = "0x50A0A3E9873D7e7d306299a75Dc05bd3Ab2d251F"; //kovan addresses, change to correct later
-// const registrarAddress = "0xC613fCc3f81cC2888C5Cccc1620212420FFe4931";
-
-// Rinkeby addresses
-// const tokenAddress = "0x2a3bFF78B79A009976EeA096a51A948a3dC00e34";
-// const hubAddress = "0x6141d5Cb3517215A03519A464bF9C39814df7479";
-
 // Goerli addresses
-const tokenAddress = "0xdDd0516188a2240c864AAd7E95FF832038fa7804"; // ERC20 (WILD)
-const hubAddress = "0x35921570D157D6E9DA51e67B47d43bAF5da1e108";
+const wildAddress = "0x0e46c45f8aca3f89Ad06F4a20E2BED1A12e4658C";
+const zeroAddress = "0x3Fa5ae3F31D38bCc2cf1dA2394c938dA8a1C9f69";
+const hubAddress = "0xce1fE2DA169C313Eb00a2bad25103D2B9617b5e1";
 
 const defaultRegistrarThatIsNowIgnored = ethers.constants.AddressZero;
 
@@ -56,15 +50,20 @@ async function main() {
     `'${deploymentAccount.address}' will be used as the deployment account`
   );
 
-  const zauctionfactory = new ZAuction__factory(deploymentAccount);
+  const zauctionFactory = new ZAuction__factory(deploymentAccount);
 
-  const bytecodeHash = hashBytecodeWithoutMetadata(zauctionfactory.bytecode);
+  // Access static bytecode value instead of instance for factory
+  const bytecodeHash = hashBytecodeWithoutMetadata(ZAuction__factory.bytecode);
 
   logger.debug(`Implementation version is ${bytecodeHash}`);
 
   const instance = await upgrades.deployProxy(
-    zauctionfactory,
-    [tokenAddress, defaultRegistrarThatIsNowIgnored],
+    zauctionFactory,
+    [
+      zeroAddress,
+      wildAddress,
+      hubAddress
+    ],
     {
       initializer: "initialize",
     }
@@ -99,15 +98,12 @@ async function main() {
     "zAuction",
     deploymentData,
     {
-      tokenAddress,
-      defaultRegistrarThatIsNowIgnored,
+      defaultPaymentToken: zeroAddress,
+      wildToken: wildAddress,
+      hubAddress: hubAddress
     },
     "goerli-zauction-1-gorilla-time"
   );
-
-  console.log(`setting zNS Hub`);
-  await (instance as ZAuction).connect(deploymentAccount).setZNSHub(hubAddress);
-
 
   if (deploymentData.implementationAddress) {
     logger.debug(`Waiting for 5 confirmations`);
